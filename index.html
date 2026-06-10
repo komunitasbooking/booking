@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Booking Komunitas</title>
+    <title>Booking Apps</title>
     
-    <!-- Trik Manifest Instan agar Chrome Android Memunculkan Tombol INSTAL -->
-    <link rel="manifest" href='data:application/json,{"name":"Aplikasi GAS Saya","short_name":"GAS App","start_url":".","display":"standalone","background_color":"#ffffff","theme_color":"#2196F3","icons":[{"src":"https://flaticon.com","sizes":"512x512","type":"image/png"}]}' />
+    <!-- Memanggil File Manifest Resmi -->
+    <link rel="manifest" href="manifest.json">
 
     <style>
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: #ffffff; }
@@ -15,15 +15,15 @@
 </head>
 <body>
 
-    <!-- GANTI LINK DI BAWAH INI DENGAN URL WEB APP GAS ANDA -->
+    <!-- URL Aplikasi GAS Anda -->
     <iframe src="https://script.google.com/macros/s/AKfycbyRVIJrx6z3nvRHFSd2V8KL_v_8g8FIZQS6yS7CGDuPQNEXmxE0KweAMkijpda8ydlbQQ/exec"></iframe>
 
     <script>
-        // Service Worker Instan via Blob Data agar memenuhi syarat PWA Android
+        // Mendaftarkan File Service Worker Resmi
         if ('serviceWorker' in navigator) {
-            const swCode = "self.addEventListener('fetch', function(e){});";
-            const blob = new Blob([swCode], {type: 'application/javascript'});
-            navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(err => console.log(err));
+            navigator.serviceWorker.register('sw.js')
+            .then(() => console.log("Service Worker Terdaftar!"))
+            .catch(err => console.log("Gagal:", err));
         }
     </script>
 </body>
