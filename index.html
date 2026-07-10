@@ -8103,7 +8103,171 @@ function tutupModalRekomendasi() {
   if (modal) modal.style.display = "none";
 }
 </script>
+<script>
+function getCurrentGame(){
+  try {
+    const game = (window.currentBooking && window.currentBooking.game) ||
+           (window.booking && window.booking.game) ||
+           (window.activeBooking && window.activeBooking.game) ||
+           (window.sessionBooking && window.sessionBooking.game) ||
+           document.getElementById('gameInput')?.value ||
+           document.getElementById('jenis')?.value || 
+           '';
+    console.log('getCurrentGame:', game);
+    return game;
+  } catch(e){ 
+    console.error('Error di getCurrentGame:', e);
+    return ''; 
+  }
+}
+
+function openLombaForm(){
+  console.log('openLombaForm dipanggil');
+  console.log('user:', user);
+  console.log('SESSION_USER:', SESSION_USER);
+
+  document.getElementById('modalLomba').style.display = 'flex';
+
+  let playerName = 'Guest';
+
+  if (user && user.nama) {
+    playerName = user.nama;
+  } else if (typeof SESSION_USER === 'string') {
+    playerName = SESSION_USER;
+  } else if (SESSION_USER && SESSION_USER.nama) {
+    playerName = SESSION_USER.nama;
+  }
+
+  console.log('openLombaForm: playerName =', playerName);
+  document.getElementById('namaPemainLomba').innerHTML = "Pemain: <b>" + playerName + "</b>";
+
+  const guessGame = getCurrentGame();
+  if (guessGame) document.getElementById('gameInput').value = guessGame;
+
+  document.getElementById('scoreYou').value = '';
+  document.getElementById('scoreOpp').value = '';
+  document.getElementById('noteInput').value = '';
+}
+
+function submitLaporan() {
+  console.log("🟡 Memulai submitLaporan...");
+  const btn = document.getElementById('btnKirim');
+  if (!btn) return;
+
+  // Jika macet, paksa reset jika sudah lewat 10 detik (Emergency Reset)
+  if (btn.dataset.loading === "1") {
+    console.warn("⏳ Proses masih berjalan...");
+    return;
+  }
+
+  try {
+    btn.dataset.loading = "1";
+    btn.dataset.originalText = "📤 Kirim"; 
+    btn.disabled = true;
+    btn.innerHTML = "⏳ Mengirim...";
     
+    prosesSubmit(btn);
+  } catch (err) {
+    console.error("❌ Fatal Error di submitLaporan:", err);
+    btn.disabled = false;
+    btn.innerHTML = "📤 Kirim";
+    btn.dataset.loading = "0";
+  }
+}
+
+function prosesSubmit(btn) {
+  console.log("🔵 Memasuki prosesSubmit...");
+
+  // Fungsi Reset Lokal
+  const resetBtn = () => {
+    console.log("🟢 Reset tombol dipanggil");
+    if (!btn) return;
+    btn.disabled = false;
+    btn.innerHTML = btn.dataset.originalText || "📤 Kirim";
+    btn.style.opacity = "1";
+    btn.style.cursor = "pointer";
+    btn.dataset.loading = "0"; 
+  };
+
+  // --- LOGIKA VALIDASI ---
+  if (typeof user === 'undefined' || !user || !user.nama) {
+    Swal.fire('⚠️ Tidak bisa laporan', 'Silakan login terlebih dahulu.', 'warning');
+    resetBtn();
+    return;
+  }
+
+  // --- PROSES CEK BOOKING ---
+  console.log("📡 Mengirim permintaan ke server...");
+  gsRun
+    .withSuccessHandler(bookingSisa => {
+      console.log("✅ Server merespon cek booking:", bookingSisa);
+      if (bookingSisa === null || bookingSisa <= 0) {
+        Swal.fire('⚠️ Tidak bisa laporan', 'Anda harus memiliki booking aktif.', 'warning');
+        resetBtn();
+        return;
+      }
+
+      // Ambil data form
+      const gameElem = document.getElementById('gameInput');
+      const hasilRadio = document.querySelector('input[name="hasilLomba"]:checked');
+      const game = gameElem?.value.trim() || '';
+
+      if (!hasilRadio || !game) {
+        Swal.fire('⚠️ Lengkapi form', 'Isi game dan pilih hasil', 'warning');
+        resetBtn();
+        return;
+      }
+
+      const data = {
+        nama: document.getElementById('namaPemainLomba')?.textContent.replace('Pemain: ', '').trim() || user.nama,
+        game,
+        hasil: hasilRadio.value,
+        skorAnda: document.getElementById('scoreYou')?.value || "0",
+        skorLawan: document.getElementById('scoreOpp')?.value || "0",
+        note: document.getElementById('noteInput')?.value.trim() || ""
+      };
+
+      Swal.fire({
+        title: '⏳ Mengirim...',
+        text: 'Sedang menyimpan laporan Anda',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+
+      // --- PROSES SIMPAN DATA ---
+      gsRun
+        .withSuccessHandler(msg => {
+          console.log("🎉 Berhasil disimpan:", msg);
+          Swal.fire({
+            icon: 'success',
+            title: '✅ Berhasil',
+            text: msg,
+            timer: 1500,
+            showConfirmButton: false
+          });
+          if (typeof closeModalLomba === "function") closeModalLomba();
+          resetBtn(); 
+        })
+        .withFailureHandler(err => {
+          console.error("❌ Gagal simpan:", err);
+          Swal.fire({ icon: 'error', title: '❌ Gagal', text: err?.message || 'Gagal menyimpan.' });
+          resetBtn();
+        })
+        .simpanDataLomba(data);
+    })
+    .withFailureHandler(err => {
+      console.error("❌ Gagal cek booking:", err);
+      Swal.fire('❌ Error', 'Gagal cek booking: ' + (err?.message || err), 'error');
+      resetBtn();
+    })
+    .getTotalDurasiBooking(user.nama);
+}
+
+function closeModalLomba() {
+  document.getElementById('modalLomba').style.display = 'none';
+}
+</script>
+
     <script>
         // Mendaftarkan File Service Worker Resmi
         if ('serviceWorker' in navigator) {
