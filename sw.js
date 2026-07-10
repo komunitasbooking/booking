@@ -1,4 +1,4 @@
-const CACHE_NAME = 'booking-cache-v4'; 
+const CACHE_NAME = 'booking-cache-v5'; 
 
 // 1. TAMBAHKAN QUERY STRING (?v=4) untuk memaksa bypass HTTP Cache browser saat install
 const urlsToCache = [
