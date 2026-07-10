@@ -1,10 +1,10 @@
-const CACHE_NAME = 'booking-cache-v5'; 
+const CACHE_NAME = 'booking-cache-v6'; 
 
-// 1. TAMBAHKAN QUERY STRING (?v=4) untuk memaksa bypass HTTP Cache browser saat install
+// 1. TAMBAHKAN QUERY STRING (?v=6) untuk memaksa bypass HTTP Cache browser saat install
 const urlsToCache = [
-  './?v=4', 
-  'index.html?v=4', 
-  'manifest.json?v=4'
+  './?v=6', 
+  'index.html?v=6', 
+  'manifest.json?v=6'
 ];
 
 self.addEventListener('install', event => {
@@ -18,7 +18,7 @@ self.addEventListener('install', event => {
             if (!response.ok) {
               throw new TypeError('Request failed for: ' + url);
             }
-            // Simpan ke cache menggunakan nama file bersih (tanpa ?v=4) sebagai key
+            // Simpan ke cache menggunakan nama file bersih (tanpa ?v=6) sebagai key
             const cleanUrl = url.split('?')[0];
             return cache.put(cleanUrl, response);
           });
@@ -47,7 +47,7 @@ self.addEventListener('fetch', event => {
     
     // Strategi Network-First khusus untuk index.html dan manifest.json
     // Supaya setiap kali user online, mereka SELALU dapat kode HTML terbaru dari server
-    if (url.pathname === '/' || url.pathname.endsWith('index.html') || url.pathname.endsWith('manifest.json')) {
+    if (url.pathname === '/' || url.pathname.endsWith('/') || url.pathname.endsWith('index.html') || url.pathname.endsWith('manifest.json')) {
       event.respondWith(
         fetch(event.request)
           .then(response => {
