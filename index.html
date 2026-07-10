@@ -6466,7 +6466,1009 @@ function klikLeaderboard(btn){
     btn.disabled = false;
   });
 }
-</script>    
+</script>
+<script>
+function tampilkanRiwayatSaldo() {
+  if (!user || !user.nama) {
+    alert("Silakan login dulu.");
+    return;
+  }
+
+  document.getElementById("modalRiwayat").style.display = "flex";
+  document.getElementById("isiRiwayatSaldo").innerHTML = "";
+  
+  // PERBAIKAN LOADER: Memaksa elemen loading berada tepat di posisi tengah (center) modal
+  const loadingElement = document.getElementById("loadingRiwayat");
+  if (loadingElement) {
+    loadingElement.style.display = "block";
+    loadingElement.style.margin = "20px auto";
+    loadingElement.style.textAlign = "center";
+  }
+
+  // ===== PENAMBAHAN ELEMEN RENTANG TANGGAL (JIKA BELUM ADA) =====
+  let inputMulai = document.getElementById("tanggalMulaiRiwayat");
+  if (!inputMulai) {
+    const hariIni = new Date().toLocaleDateString('sv-SE'); // Format YYYY-MM-DD
+    
+    const wrapperTanggal = document.createElement("div");
+    wrapperTanggal.id = "rentangTanggalContainer";
+    // PERBAIKAN: flex-wrap diubah ke nowrap agar mutlak satu baris, menggunakan box-sizing agar aman
+    wrapperTanggal.style.cssText = "margin-bottom: 15px; display: flex; flex-wrap: nowrap; align-items: center; justify-content: center; gap: 6px; width: 100%; box-sizing: border-box; overflow: hidden;";
+    wrapperTanggal.innerHTML = `
+      <!-- Kolom Tanggal Mulai -->
+      <div style="display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; justify-content: center;">
+        <label for="tanggalMulaiRiwayat" style="font-size: 11px; color: gray; white-space: nowrap; flex-shrink: 0;">Dari:</label>
+        <input type="date" id="tanggalMulaiRiwayat" value="${hariIni}" style="padding: 5px 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px; width: 100%; max-width: 110px; min-width: 0; box-sizing: border-box; flex-shrink: 1;">
+      </div>
+      
+      <!-- Kolom Tanggal Selesai -->
+      <div style="display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; justify-content: center;">
+        <label for="tanggalSelesaiRiwayat" style="font-size: 11px; color: gray; white-space: nowrap; flex-shrink: 0;">Sampai:</label>
+        <input type="date" id="tanggalSelesaiRiwayat" value="${hariIni}" style="padding: 5px 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px; width: 100%; max-width: 110px; min-width: 0; box-sizing: border-box; flex-shrink: 1;">
+      </div>
+    `;
+    
+    // Sisipkan elemen rentang tanggal di atas elemen loadingRiwayat
+    loadingElement.parentNode.insertBefore(wrapperTanggal, loadingElement);
+    
+    // Pasang event listener pada kedua tanggal agar otomatis panggil ulang saat salah satu diganti
+    document.getElementById("tanggalMulaiRiwayat").addEventListener("change", tampilkanRiwayatSaldo);
+    document.getElementById("tanggalSelesaiRiwayat").addEventListener("change", tampilkanRiwayatSaldo);
+  }
+
+
+  // Ambil nilai rentang tanggal aktif (Format: YYYY-MM-DD)
+  const tglMulai = document.getElementById("tanggalMulaiRiwayat").value;
+  const tglSelesai = document.getElementById("tanggalSelesaiRiwayat").value;
+
+  gsRun.withSuccessHandler(data => {
+    const container = document.getElementById("isiRiwayatSaldo");
+    if (loadingElement) loadingElement.style.display = "none";
+
+    if (data.length === 0) {
+      container.innerHTML = "<p style='text-align:center; color:gray; font-size:13px;'>Tidak ada riwayat saldo.</p>";
+      return;
+    }
+
+    // PERBAIKAN STRUKTUR RESPONSIF HP: Mengganti struktur table kaku menjadi baris pembagian Flexbox (Rasio 1.2 : 1 : 1 : 1.8)
+    let html = `<div style="width: 100%; box-sizing: border-box; font-size: 12px;">`;
+    
+    // Header Tabel Flexbox
+    html += `
+      <div style="display: flex; background: #ecf0f1; font-weight: bold; border: 1px solid #ccc; border-bottom: none; padding: 6px 2px; text-align: center;">
+        <div style="flex: 1.2; word-break: break-all;">Waktu</div>
+        <div style="flex: 1;">Jumlah</div>
+        <div style="flex: 1;">Sisa</div>
+        <div style="flex: 1.8;">Keterangan</div>
+      </div>
+    `;
+
+    // Data Baris Flexbox (Otomatis membungkus teks panjang dan menyusut pas di layar kecil HP)
+    data.forEach((row, index) => {
+      // Memberikan warna belang-belang abu-abu tipis pada baris genap agar mudah dibaca
+      const rowBg = index % 2 === 0 ? "background: #ffffff;" : "background: #f9f9f9;";
+      
+      html += `
+        <div style="display: flex; align-items: center; ${rowBg} border: 1px solid #ccc; border-top: none; padding: 8px 2px; text-align: center; width: 100%; box-sizing: border-box;">
+          <div style="flex: 1.2; word-break: break-word; font-size: 11px; color: #555;">${row[0]}</div>
+          <div style="flex: 1; word-break: break-all; color: #27ae60; font-weight: bold;">${row[1]}</div>
+          <div style="flex: 1; word-break: break-all;">${row[2]}</div>
+          <div style="flex: 1.8; text-align: left; padding-left: 4px; word-break: break-word; line-height: 1.2;">${row[3]}</div>
+        </div>
+      `;
+    });
+
+    html += "</div>";
+    container.innerHTML = html;
+  }).getRiwayatSaldo(user.nama, tglMulai, tglSelesai);
+}
+
+function tutupModalRiwayat() {
+  document.getElementById("modalRiwayat").style.display = "none";
+}
+
+</script>
+<script>
+// Data booking terakhir dari server
+let dataBookingTerakhir = [];
+
+// User yang mengaktifkan suara
+const suaraAktif = JSON.parse(
+  localStorage.getItem("suaraAktif") || "{}"
+);
+
+// Menyimpan alarm yang sedang aktif
+const alarmSudahBunyi = {};
+
+// Jalankan pengecekan alarm tiap detik
+setInterval(checkAlarmTiapDetik, 1000);
+
+function checkAlarmTiapDetik() {
+
+  const now = new Date();
+
+  dataBookingTerakhir.forEach(row => {
+
+    if (!row.tanggal || !row.jam || !row.durasi) return;
+
+    const [jam, menit] = row.jam.split(":").map(Number);
+    const [tahun, bulan, tanggal] = row.tanggal.split("-").map(Number);
+    const durasi = parseInt(row.durasi);
+
+    // Hindari crash bila format data rusak
+    if ([jam, menit, tahun, bulan, tanggal, durasi].some(isNaN)) return;
+
+    const startTime = new Date(
+      tahun,
+      bulan - 1,
+      tanggal,
+      jam,
+      menit
+    );
+
+    const endTime = new Date(
+      startTime.getTime() + durasi * 60000
+    );
+
+    const sisaMenit =
+      (endTime.getTime() - now.getTime()) / 60000;
+
+    // Alarm mulai saat tersisa 2 menit
+    if (
+      suaraAktif[row.nama] &&
+      sisaMenit <= 2 &&
+      sisaMenit > 0 &&
+      !alarmSudahBunyi[row.nama]
+    ) {
+
+      let jumlahBunyi = 0;
+
+      alarmSudahBunyi[row.nama] = setInterval(() => {
+
+        const suara = new Audio(
+          "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"
+        );
+
+        suara.play().catch(() => {});
+
+        jumlahBunyi++;
+
+        // 1 menit / 4 detik = 15 kali
+        if (jumlahBunyi >= 1) {
+          clearInterval(alarmSudahBunyi[row.nama]);
+          delete alarmSudahBunyi[row.nama];
+        }
+
+      }, 4000);
+
+    }
+
+  });
+
+}
+
+function toggleSuara(nama, tombol) {
+
+  if (suaraAktif[nama]) {
+
+    delete suaraAktif[nama];
+
+    tombol.innerHTML = "🔇";
+    tombol.title = "Aktifkan suara";
+
+  } else {
+
+    // Interaksi pertama agar browser mengizinkan audio
+    const suara = new Audio(
+      "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"
+    );
+
+    suara.play()
+      .then(() => suara.pause())
+      .catch(() => {});
+
+    suaraAktif[nama] = true;
+
+    tombol.innerHTML = "🔔";
+    tombol.title = "Suara aktif";
+  }
+
+  localStorage.setItem(
+    "suaraAktif",
+    JSON.stringify(suaraAktif)
+  );
+
+}
+
+function showBookingList(data) {
+  dataBookingTerakhir = data || [];
+  const tbody = document.getElementById("bookingList");
+  tbody.innerHTML = "";
+
+  const now = new Date();
+
+  // 🔹 Mapping nama tampil
+  const namaJenis = {
+    HP: "REGULER",
+    PS2: "VIP",
+    PS3: "VVIP",
+    PS4: "ULTRA VIP"
+  };
+
+  // 🔹 Warna tiap tier
+  const warnaJenis = {
+    HP: "#bdc3c7",
+    PS2: "#3498db",
+    PS3: "#9b59b6",
+    PS4: "#f1c40f"
+  };
+
+  const dataAktif = data
+    .map(row => {
+      if (!row.tanggal || !row.jam || !row.durasi) return null;
+
+      const [jam, menit] = row.jam.split(":").map(Number);
+      const [tahun, bulan, tanggal] = row.tanggal.split("-").map(Number);
+      const durasiMenit = parseInt(row.durasi);
+
+      if ([jam, menit, year = tahun, bulan, tanggal, durasiMenit].some(isNaN)) return null;
+
+      const startTime = new Date(tahun, bulan - 1, tanggal, jam, menit);
+      const endTime = new Date(startTime.getTime() + durasiMenit * 60000);
+
+      const isPlaying = now >= startTime && now <= endTime;
+      return { ...row, startTime, endTime, isPlaying };
+    })
+    .filter(row => row && row.endTime > now)
+    .sort((a, b) => a.startTime - b.startTime);
+
+  if (dataAktif.length === 0) {
+    tbody.innerHTML = `
+      <div style="text-align: center; padding: 20px; color: #aaa; font-size: 13px; border: 1px dashed #444; border-radius: 6px;">
+        Tidak ada booking aktif
+      </div>
+    `;
+  } else {
+    dataAktif.forEach(row => {
+      const endStr = row.endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const statusBadge = row.isPlaying ? "🔥 SEDANG MAIN" : "⏳ MENUNGGU";
+      const bgCard = row.isPlaying ? "background: rgba(46, 204, 113, 0.12); border: 1px solid #2ecc71;" : "background: #2c2c3e; border: 1px solid #444;";
+
+      // PERBAIKAN UTAMA: Mengganti struktur 'tr' 6 kolom menyamping menjadi Kartu Flexbox Mini Tingkat 2
+      const card = document.createElement("div");
+      card.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        ${bgCard}
+        padding: 10px;
+        border-radius: 8px;
+        width: 100%;
+        box-sizing: border-box;
+      `;
+
+      card.innerHTML = `
+        <!-- Baris Atas: Nama & Status Badge -->
+        <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+
+          <div style="
+            font-weight:bold;
+            color:#fff;
+            font-size:13px;
+            word-break:break-word;
+            max-width:55%;">
+            ${row.nama}
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px;">
+
+          <button
+            class="btnSuara"
+            data-nama="${row.nama}"
+            title="${suaraAktif[row.nama] ? 'Suara aktif' : 'Aktifkan suara'}"
+            style="
+              background:none;
+              border:none;
+              cursor:pointer;
+              font-size:20px;">
+            ${suaraAktif[row.nama] ? "🔔" : "🔇"}
+          </button>
+
+            <div style="
+              font-size:10px;
+              font-weight:bold;
+              color:${row.isPlaying ? '#2ecc71' : '#f1c40f'};
+              background:rgba(0,0,0,0.3);
+              padding:3px 6px;
+              border-radius:4px;
+              letter-spacing:.5px;">
+              ${statusBadge}
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Baris Bawah: Detail Informasi Gabungan (Hemat Ruang) -->
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 11px; color: #bbb; border-top: 1px solid rgba(250,250,250,0.06); padding-top: 6px;">
+          <div>Tier: <span style="font-weight:bold; color:${warnaJenis[row.jenis] || '#fff'}">${namaJenis[row.jenis] || row.jenis}</span></div>
+          <div style="color: #666;">•</div>
+          <div>📅 ${row.tanggal}</div>
+          <div style="color: #666;">•</div>
+          <div>🕒 ${row.jam} (${row.durasi}m)</div>
+          <div style="color: #666;">•</div>
+          <div>🏁 Selesai: <span style="color:#00ffcc; font-weight:bold;">${endStr}</span></div>
+        </div>
+      `;
+
+      tbody.appendChild(card);
+      const btn = card.querySelector(".btnSuara");
+
+      btn.onclick = function () {
+        toggleSuara(row.nama, this);
+      };
+    });
+  }
+
+  const modal = document.getElementById("bookingModal");
+  if (modal) modal.style.display = "flex";
+}
+
+function tampilkanBaris(dataArray) {
+  console.log("📦 Data booking:", dataArray);
+  const tbody = document.getElementById("bookingList");
+  tbody.innerHTML = "";
+
+  if (!dataArray || dataArray.length === 0) {
+    tbody.innerHTML = `
+      <div style="text-align: center; padding: 20px; color: #aaa; font-size: 13px; border: 1px dashed #444; border-radius: 6px;">
+        Tidak ada booking untuk tanggal ini
+      </div>
+    `;
+  } else {
+    dataArray.forEach(row => {
+      let waktuBerakhir = "-";
+
+      if (row.jam && row.durasi) {
+        try {
+          const [jamStr, menitStr] = row.jam.split(":");
+          const jam = parseInt(jamStr, 10);
+          const menit = parseInt(menitStr, 10);
+          const durasi = parseInt(row.durasi, 10);
+
+          const start = new Date(0, 0, 0, jam, menit);
+          const end = new Date(start.getTime() + durasi * 60000);
+
+          const jamAkhir = end.getHours().toString().padStart(2, "0");
+          const menitAkhir = end.getMinutes().toString().padStart(2, "0");
+          waktuBerakhir = `${jamAkhir}:${menitAkhir}`;
+        } catch (e) {
+          console.error("❌ Gagal hitung waktu berakhir:", e, row);
+        }
+      }
+
+      // Render ulang kartu flex untuk fungsi filter tanggal
+      const card = document.createElement("div");
+      card.style.cssText = "display: flex; flex-direction: column; gap: 6px; background: #2c2c3e; border: 1px solid #444; padding: 10px; border-radius: 8px; width: 100%; box-sizing: border-box;";
+
+      card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <div style="font-weight: bold; color: #fff; font-size: 13px;">${row.nama}</div>
+          <div style="font-size: 11px; font-weight: bold; color: #00ffcc;">${row.jenis}</div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 11px; color: #bbb; border-top: 1px solid rgba(250,250,250,0.06); padding-top: 6px;">
+          <div>📅 ${row.tanggal}</div>
+          <div style="color: #666;">•</div>
+          <div>🕒 ${row.jam} (${row.durasi}m)</div>
+          <div style="color: #666;">•</div>
+          <div>🏁 Selesai: <span style="color:#00ffcc; font-weight:bold;">${waktuBerakhir}</span></div>
+        </div>
+      `;
+      tbody.appendChild(card);
+    });
+  }
+}
+
+function tampilkanModalBooking() {
+  const modal = document.getElementById("bookingModal");
+  if (modal) modal.style.display = "flex";
+
+  gsRun.withSuccessHandler(showBookingList).getBookingData();
+}
+
+function tutupModal() {
+  document.getElementById("bookingModal").style.display = "none";
+}
+
+function filterTanggalBooking() {
+  const selectedDate = document.getElementById("filterTanggal").value;
+  const fullDataRaw = document.getElementById("filterTanggal").dataset.fullData || "[]";
+  const fullData = JSON.parse(fullDataRaw);
+
+  console.log("📅 Tanggal dipilih:", selectedDate);
+  const hasil = selectedDate ? fullData.filter(r => r.tanggal === selectedDate) : fullData;
+  tampilkanBaris(hasil);
+}
+
+</script>
+<script>
+function tampilkanHadiah() {
+  const url = "https://komunitasbooking.github.io/plinko/";
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  if (isMobile) {
+    // 🔹 HP/Tablet buka tab baru supaya tombol/input pasti berfungsi
+    window.open(url, "_blank");
+  } else {
+    // 🔹 Desktop pakai modal iframe
+    document.getElementById('iframeHadiah').src = url;
+    document.getElementById('modalHadiah').style.display = 'block';
+  }
+}
+
+function tutupHadiah() {
+  document.getElementById('modalHadiah').style.display = 'none';
+  document.getElementById('iframeHadiah').src = ""; // reset agar reload saat buka lagi
+}
+</script>
+<script>
+function openModalUpdate() {
+  if (!user || !user.nama) {
+    alert("⚠️ Harus login dulu untuk update data!");
+    return;
+  }
+
+  // 🔹 Tampilkan loader global
+  document.getElementById("loader").style.display = "flex";
+
+  gsRun.withSuccessHandler(function(data) {
+    // 🔹 Isi data form modal
+    document.getElementById("updPIN").value = data.pin || "";
+    document.getElementById("updNamaLengkap").value = data.namaLengkap || "";
+    document.getElementById("updWA").value = data.wa || "";
+    document.getElementById("updAlamat").value = data.alamat || "";
+    document.getElementById("updTanggalLahir").value = data.tanggalLahir || "";
+    document.getElementById("updHobi").value = data.hobi || "";
+
+    // 🔹 Sembunyikan loader & tampilkan modal
+    document.getElementById("loader").style.display = "none";
+    document.getElementById("modalUpdateData").classList.remove("modal-hidden");
+    document.getElementById("modalUpdateData").classList.add("modal-active");
+
+  }).getUserData(user.nama);
+}
+
+function closeModalUpdate() {
+  const modal = document.getElementById("modalUpdateData");
+  modal.classList.remove("modal-active");
+  modal.classList.add("modal-hidden");
+}
+
+// 🔹 Tutup modal kalau klik di luar kotak
+window.addEventListener('click', function(e){
+  const modal = document.getElementById('modalUpdateData');
+  if(e.target === modal){
+    closeModalUpdate();
+  }
+});
+
+function simpanUpdateData() {
+  if (!user || !user.nama) {
+    alert("⚠️ Tidak ada user login.");
+    return;
+  }
+
+  const btn = document.getElementById("btnSimpanData");
+  const teksAwal = btn.innerHTML;
+
+  const pin = document.getElementById("updPIN").value.trim();
+
+  if (!pin) {
+    alert("⚠️ PIN wajib diisi!");
+    document.getElementById("updPIN").focus();
+    return;
+  }
+
+  // 🔒 Ubah tombol saat proses
+  btn.innerHTML = "⏳ Tunggu...";
+  btn.disabled = true;
+
+  const data = {
+    nama: user.nama,
+    pin: pin,
+    namaLengkap: document.getElementById("updNamaLengkap").value.trim(),
+    wa: document.getElementById("updWA").value.trim(),
+    alamat: document.getElementById("updAlamat").value.trim(),
+    tanggalLahir: document.getElementById("updTanggalLahir").value || "",
+    hobi: document.getElementById("updHobi").value.trim()
+  };
+
+  gsRun
+    .withSuccessHandler(function(msg) {
+      alert(msg);
+
+      // 🔓 Kembalikan tombol
+      btn.innerHTML = teksAwal;
+      btn.disabled = false;
+
+      closeModalUpdate();
+    })
+    .withFailureHandler(function(err) {
+
+      btn.innerHTML = teksAwal;
+      btn.disabled = false;
+
+      alert("❌ Gagal menyimpan data.");
+      console.error(err);
+    })
+    .updateUserData(data);
+}
+
+</script>
+<script>
+function tampilkanDaftar() {
+  document.getElementById("loginDiv").style.display = "none";
+  document.getElementById("daftarDiv").style.display = "block";
+  document.getElementById("daftarStatus").innerText = "";
+}
+
+function batalDaftar() {
+  document.getElementById("daftarDiv").style.display = "none";
+  document.getElementById("loginDiv").style.display = "block";
+  document.getElementById("loginStatus").innerText = "";
+}
+
+function daftarAkun() {
+  const nama = document.getElementById("namaDaftar").value.trim();
+  const tgl = document.getElementById("tanggalDaftar").value;
+  const panggilan = document.getElementById("unikDaftar").value.trim();
+  const pin = document.getElementById("pinDaftar").value.trim();
+  const rekomendasi = document.getElementById("rekomendasiDaftar").value.trim(); // 🚩 BARU
+
+  const status = document.getElementById("daftarStatus");
+  status.style.textAlign = "center";
+
+  // 1️⃣ Validasi input kosong
+  if (!nama || !tgl || !panggilan || !pin || !rekomendasi) {
+    status.innerText = "⚠️ Lengkapi semua data termasuk nama yang merekomendasikan!";
+    status.style.color = "#e67e22";
+    return;
+  }
+
+  // 2️⃣ Validasi nama panggilan hanya huruf & angka
+  if (!/^[a-zA-Z0-9]+$/.test(panggilan)) {
+    status.innerText = "⚠️ Nama panggilan hanya boleh huruf dan angka, tanpa spasi.";
+    status.style.color = "#e67e22";
+    return;
+  }
+
+  // 3️⃣ Validasi PIN minimal 1 digit
+  if (pin.length < 1) {
+    status.innerText = "⚠️ PIN minimal 1 digit.";
+    status.style.color = "#e67e22";
+    return;
+  }
+
+  // 4️⃣ Validasi tanggal lahir
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(tgl)) {
+    status.innerText = "⚠️ Format tanggal tidak valid (gunakan YYYY-MM-DD).";
+    status.style.color = "#e67e22";
+    return;
+  }
+
+  // 5️⃣ Anti self-recommend
+  if (rekomendasi.toLowerCase() === panggilan.toLowerCase()) {
+    status.innerText = "⚠️ Tidak bisa merekomendasikan diri sendiri.";
+    status.style.color = "#e67e22";
+    return;
+  }
+
+  // 🔹 Tampilkan loader
+  document.getElementById("loader").style.display = "flex";
+  status.innerText = "";
+
+  // 6️⃣ Kirim data ke Apps Script
+  gsRun
+    .withSuccessHandler(function(res) {
+      document.getElementById("loader").style.display = "none";
+
+      let result;
+      try {
+        result = typeof res === "string" ? JSON.parse(res) : res;
+      } catch (e) {
+        status.innerText = "❌ Terjadi kesalahan response server (JSON error).";
+        status.style.color = "#c0392b";
+        console.error("Parse error:", e, res);
+        return;
+      }
+
+      if (result.success) {
+        status.style.color = "#27ae60";
+
+        // 🚩 Pesan disesuaikan: akun PENDING, bukan langsung aktif
+        status.innerHTML = `✅ Pendaftaran terkirim!<br>
+          <small style="color:#2980b9;">BarcodeID: ${result.barcode}</small><br>
+          ⏳ Menunggu persetujuan dari <b>${rekomendasi}</b> sebelum akun bisa login.`;
+
+        // Reset form
+        document.getElementById("namaDaftar").value = "";
+        document.getElementById("tanggalDaftar").value = "";
+        document.getElementById("unikDaftar").value = "";
+        document.getElementById("pinDaftar").value = "";
+        document.getElementById("rekomendasiDaftar").value = "";
+
+        // Kembali ke login setelah user baca pesan (tidak auto-redirect cepat)
+        setTimeout(() => {
+          const daftarDiv = document.getElementById("daftarDiv");
+          daftarDiv.style.transition = "opacity 0.5s ease";
+          daftarDiv.style.opacity = 0;
+
+          setTimeout(() => {
+            daftarDiv.style.display = "none";
+
+            const loginDiv = document.getElementById("loginDiv");
+            loginDiv.style.display = "block";
+            loginDiv.style.opacity = 0;
+            loginDiv.style.transition = "opacity 0.5s ease";
+
+            setTimeout(() => {
+              loginDiv.style.opacity = 1;
+            }, 50);
+          }, 500);
+        }, 4000);
+
+      } else {
+        status.innerText = result.message || "❌ Gagal membuat akun.";
+        status.style.color = "#c0392b";
+      }
+
+    })
+    .withFailureHandler(function(err) {
+      document.getElementById("loader").style.display = "none";
+      status.innerText = "❌ Gagal terhubung ke server.";
+      status.style.color = "#c0392b";
+      console.error("❌ daftarAkun error:", err);
+    })
+    .daftarAkunBaru(nama, tgl, panggilan, pin, rekomendasi); // 🚩 rekomendasi ikut dikirim
+}
+
+</script>
+<script>
+function tampilkanTransferSaldo() {
+  const modal = document.getElementById("modalTransfer");
+  const box = document.getElementById("modalBoxTransfer");
+  modal.style.display = "flex";
+  setTimeout(() => {
+    modal.style.opacity = "1";
+    box.style.transform = "scale(1)";
+  }, 10);
+}
+
+function tutupModalTransfer() {
+  const modal = document.getElementById("modalTransfer");
+  const box = document.getElementById("modalBoxTransfer");
+  modal.style.opacity = "0";
+  box.style.transform = "scale(0.9)";
+  setTimeout(() => {
+    modal.style.display = "none";
+    // Reset form setelah modal tutup (opsional)
+    document.getElementById("nominalTransfer").value = "";
+    document.getElementById("namaTujuan").value = "";
+    document.getElementById("keteranganTransfer").value = "";
+  }, 300);
+}
+
+// tampilkan pesan sukses profesional
+function showSuccessPopup(pesan="Berhasil!") {
+  const popup = document.getElementById("popupSuccess");
+  const msg = document.getElementById("popupMessage");
+  msg.innerText = pesan;
+  popup.style.display = "flex";
+
+  // Reset animasi centang
+  const path = popup.querySelector("path");
+  path.style.strokeDasharray = "50";
+  path.style.strokeDashoffset = "50";
+
+  // Trigger animasi centang
+  setTimeout(() => {
+    path.style.transition = "stroke-dashoffset 0.5s ease";
+    path.style.strokeDashoffset = "0";
+  }, 100);
+
+  // Auto close
+  setTimeout(() => {
+    popup.style.display = "none";
+  }, 2500);
+}
+
+function kirimTransfer() {
+  const btnKirim = document.getElementById("btnKirimTransfer"); 
+  const nominal = parseInt(document.getElementById("nominalTransfer").value, 10);
+  const namaTujuan = document.getElementById("namaTujuan").value;
+  const ket = document.getElementById("keteranganTransfer").value;
+
+  if (!nominal || !namaTujuan) {
+    alert("Nominal dan Nama Tujuan wajib diisi!");
+    return;
+  }
+
+  // 🔴 VALIDASI BARU: Dilarang keras melakukan transfer ke akun/nama sendiri
+  if (user && user.nama && namaTujuan.toLowerCase().trim() === user.nama.toLowerCase().trim()) {
+    alert("❌ Kesalahan: Anda tidak dapat melakukan transfer saldo ke nama diri sendiri!");
+    return;
+  }
+
+  // 🔹 Ubah tombol ke mode loading
+  btnKirim.disabled = true;
+  btnKirim.innerText = "⏳ Mengecek...";
+  btnKirim.style.opacity = "0.7";
+  btnKirim.style.cursor = "not-allowed";
+
+  // 🔹 Ambil saldo terbaru sebelum kirim
+  gsRun
+    .withSuccessHandler(function(saldoTerbaru) {
+      user.saldo = saldoTerbaru;
+      const saldoEl = document.getElementById("saldoPemain");
+      if (saldoEl) saldoEl.innerText = user.saldo;
+
+      if (user.saldo < nominal) {
+        alert(`❌ Saldo tidak cukup. Saldo Anda: ${user.saldo}, nominal transfer: ${nominal}`);
+        btnKirim.disabled = false;
+        btnKirim.innerText = "Kirim";
+        btnKirim.style.opacity = "1";
+        btnKirim.style.cursor = "pointer";
+        return;
+      }
+
+      // 🔹 Kalau saldo cukup, lanjut proses transfer
+      btnKirim.innerText = "⏳ Mengirim…";
+      gsRun
+        .withSuccessHandler(function(res) {
+          btnKirim.disabled = false;
+          btnKirim.innerText = "Kirim";
+          btnKirim.style.opacity = "1";
+          btnKirim.style.cursor = "pointer";
+
+          document.getElementById("loader").style.display = "none";
+          showSuccessPopup(res);
+          tutupModalTransfer();
+
+          // 🔹 Ambil saldo terbaru setelah transfer
+          gsRun.withSuccessHandler(function(saldoFinal) {
+            user.saldo = saldoFinal;
+            if (saldoEl) saldoEl.innerText = user.saldo;
+          }).getSaldo(user.nama);
+        })
+        .withFailureHandler(function(err) {
+          btnKirim.disabled = false;
+          btnKirim.innerText = "Kirim";
+          btnKirim.style.opacity = "1";
+          btnKirim.style.cursor = "pointer";
+
+          document.getElementById("loader").style.display = "none";
+          alert("Terjadi kesalahan: " + err.message);
+        })
+        .prosesTransfer(nominal, namaTujuan, ket, user.nama);
+    })
+    .withFailureHandler(function(err) {
+      btnKirim.disabled = false;
+      btnKirim.innerText = "Kirim";
+      btnKirim.style.opacity = "1";
+      btnKirim.style.cursor = "pointer";
+      alert("Gagal cek saldo: " + err.message);
+    })
+    .getSaldo(user.nama);
+}
+
+</script>
+<script>
+document.getElementById("saldoPemain").addEventListener("click", refreshSaldo);
+
+function refreshSaldo() {
+  const saldoEl = document.getElementById("saldoPemain");
+  const waktuEl = document.getElementById("waktuBooking");
+  const nama = document.getElementById("namaPemain").innerText;
+
+  saldoEl.innerText = "⏳";
+  waktuEl.innerText = "⏳";
+
+  gsRun
+    .withSuccessHandler(function (res) {
+      if (res.error) {
+        saldoEl.innerText = "❌ " + res.error;
+        waktuEl.innerText = "-";
+      } else {
+        saldoEl.innerText = res.menit + "";
+        saldoEl.title = "Saldo: " + res.saldo;
+        waktuEl.innerText = res.waktuSisa + " menit";
+
+        // Simpan ke variabel global
+        window.latestSaldo = {
+          saldo: res.saldo,
+          menit: res.menit,
+          waktuSisa: res.waktuSisa
+        };
+
+        // Kirim sinyal ke seluruh script
+        document.dispatchEvent(new CustomEvent("saldoUpdated", {
+          detail: window.latestSaldo
+        }));
+      }
+    })
+    .withFailureHandler(function (err) {
+      saldoEl.innerText = "❌ Error";
+      waktuEl.innerText = "❌ Error";
+      console.error(err);
+    })
+    .getSaldoDanWaktu(nama);
+}
+</script>
+<script>
+function getCurrentGame(){
+  try {
+    const game = (window.currentBooking && window.currentBooking.game) ||
+           (window.booking && window.booking.game) ||
+           (window.activeBooking && window.activeBooking.game) ||
+           (window.sessionBooking && window.sessionBooking.game) ||
+           document.getElementById('gameInput')?.value ||
+           document.getElementById('jenis')?.value || 
+           '';
+    console.log('getCurrentGame:', game);
+    return game;
+  } catch(e){ 
+    console.error('Error di getCurrentGame:', e);
+    return ''; 
+  }
+}
+
+function openLombaForm(){
+  console.log('openLombaForm dipanggil');
+  console.log('user:', user);
+  console.log('SESSION_USER:', SESSION_USER);
+
+  document.getElementById('modalLomba').style.display = 'flex';
+
+  let playerName = 'Guest';
+
+  if (user && user.nama) {
+    playerName = user.nama;
+  } else if (typeof SESSION_USER === 'string') {
+    playerName = SESSION_USER;
+  } else if (SESSION_USER && SESSION_USER.nama) {
+    playerName = SESSION_USER.nama;
+  }
+
+  console.log('openLombaForm: playerName =', playerName);
+  document.getElementById('namaPemainLomba').innerHTML = "Pemain: <b>" + playerName + "</b>";
+
+  const guessGame = getCurrentGame();
+  if (guessGame) document.getElementById('gameInput').value = guessGame;
+
+  document.getElementById('scoreYou').value = '';
+  document.getElementById('scoreOpp').value = '';
+  document.getElementById('noteInput').value = '';
+}
+
+function submitLaporan() {
+  console.log("🟡 Memulai submitLaporan...");
+  const btn = document.getElementById('btnKirim');
+  if (!btn) return;
+
+  // Jika macet, paksa reset jika sudah lewat 10 detik (Emergency Reset)
+  if (btn.dataset.loading === "1") {
+    console.warn("⏳ Proses masih berjalan...");
+    return;
+  }
+
+  try {
+    btn.dataset.loading = "1";
+    btn.dataset.originalText = "📤 Kirim"; 
+    btn.disabled = true;
+    btn.innerHTML = "⏳ Mengirim...";
+    
+    prosesSubmit(btn);
+  } catch (err) {
+    console.error("❌ Fatal Error di submitLaporan:", err);
+    btn.disabled = false;
+    btn.innerHTML = "📤 Kirim";
+    btn.dataset.loading = "0";
+  }
+}
+
+function prosesSubmit(btn) {
+  console.log("🔵 Memasuki prosesSubmit...");
+
+  // Fungsi Reset Lokal
+  const resetBtn = () => {
+    console.log("🟢 Reset tombol dipanggil");
+    if (!btn) return;
+    btn.disabled = false;
+    btn.innerHTML = btn.dataset.originalText || "📤 Kirim";
+    btn.style.opacity = "1";
+    btn.style.cursor = "pointer";
+    btn.dataset.loading = "0"; 
+  };
+
+  // --- LOGIKA VALIDASI ---
+  if (typeof user === 'undefined' || !user || !user.nama) {
+    Swal.fire('⚠️ Tidak bisa laporan', 'Silakan login terlebih dahulu.', 'warning');
+    resetBtn();
+    return;
+  }
+
+  // --- PROSES CEK BOOKING ---
+  console.log("📡 Mengirim permintaan ke server...");
+  gsRun
+    .withSuccessHandler(bookingSisa => {
+      console.log("✅ Server merespon cek booking:", bookingSisa);
+      if (bookingSisa === null || bookingSisa <= 0) {
+        Swal.fire('⚠️ Tidak bisa laporan', 'Anda harus memiliki booking aktif.', 'warning');
+        resetBtn();
+        return;
+      }
+
+      // Ambil data form
+      const gameElem = document.getElementById('gameInput');
+      const hasilRadio = document.querySelector('input[name="hasilLomba"]:checked');
+      const game = gameElem?.value.trim() || '';
+
+      if (!hasilRadio || !game) {
+        Swal.fire('⚠️ Lengkapi form', 'Isi game dan pilih hasil', 'warning');
+        resetBtn();
+        return;
+      }
+
+      const data = {
+        nama: document.getElementById('namaPemainLomba')?.textContent.replace('Pemain: ', '').trim() || user.nama,
+        game,
+        hasil: hasilRadio.value,
+        skorAnda: document.getElementById('scoreYou')?.value || "0",
+        skorLawan: document.getElementById('scoreOpp')?.value || "0",
+        note: document.getElementById('noteInput')?.value.trim() || ""
+      };
+
+      Swal.fire({
+        title: '⏳ Mengirim...',
+        text: 'Sedang menyimpan laporan Anda',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+
+      // --- PROSES SIMPAN DATA ---
+      gsRun
+        .withSuccessHandler(msg => {
+          console.log("🎉 Berhasil disimpan:", msg);
+          Swal.fire({
+            icon: 'success',
+            title: '✅ Berhasil',
+            text: msg,
+            timer: 1500,
+            showConfirmButton: false
+          });
+          if (typeof closeModalLomba === "function") closeModalLomba();
+          resetBtn(); 
+        })
+        .withFailureHandler(err => {
+          console.error("❌ Gagal simpan:", err);
+          Swal.fire({ icon: 'error', title: '❌ Gagal', text: err?.message || 'Gagal menyimpan.' });
+          resetBtn();
+        })
+        .simpanDataLomba(data);
+    })
+    .withFailureHandler(err => {
+      console.error("❌ Gagal cek booking:", err);
+      Swal.fire('❌ Error', 'Gagal cek booking: ' + (err?.message || err), 'error');
+      resetBtn();
+    })
+    .getTotalDurasiBooking(user.nama);
+}
+
+function closeModalLomba() {
+  document.getElementById('modalLomba').style.display = 'none';
+}
+</script>
+
     <script>
         // Mendaftarkan File Service Worker Resmi
         if ('serviceWorker' in navigator) {
