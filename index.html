@@ -5104,7 +5104,1369 @@ function cekSisaBooking() {
 }
 
 </script>
+
+<script>
+
+function logout() {
+  try {
+
+    const sessionId =
+      (SESSION_USER && SESSION_USER.sessionId) ||
+      localStorage.getItem("sessionId") ||
+      sessionStorage.getItem("sessionId");
+
+    const namaUser =
+      (SESSION_USER && SESSION_USER.nama) ||
+      localStorage.getItem("namaLogin") ||
+      sessionStorage.getItem("namaLogin");
+
+    if (!sessionId) {
+      alert("❌ Tidak ada sesi login yang aktif.");
+      return;
+    }
+
+    console.log("▶ Proses logout untuk:", namaUser, "session:", sessionId);
+
+    // 🔄 Hentikan pengecekan otomatis booking
+    if (typeof stopCekBooking === "function") {
+      try {
+        stopCekBooking();
+      } catch (err) {
+        console.warn("⚠️ stopCekBooking gagal:", err);
+      }
+    }
+
+    // 🔧 Reset variabel global
+    SESSION_USER = null;
+    user = null;
+    waktuSisa = 0;
+    saldoTampilan = 0;
+
+    // 🗑️ Hapus hanya SESSION (JANGAN deviceId/deviceToken)
+    localStorage.removeItem("sessionId");
+    localStorage.removeItem("namaLogin");
+
+    sessionStorage.removeItem("sessionId");
+    sessionStorage.removeItem("namaLogin");
+
+    // 💻 Reset UI
+    const dashboardEl = document.getElementById("dashboard");
+    const loginDivEl = document.getElementById("loginDiv");
+
+    if (dashboardEl) dashboardEl.style.display = "none";
+    if (loginDivEl) loginDivEl.style.display = "block";
+
+    const fields = ["nama", "pin"];
+    fields.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
+    });
+
+    const labels = [
+      "loginStatus",
+      "saldoPemain",
+      "waktuBooking",
+      "namaPemain",
+      "poinPemain",
+      "namaUser",
+      "poinUser"
+    ];
+
+    labels.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.innerText = "";
+        el.textContent = "";
+      }
+    });
+
+    // 🔓 Logout di server
+    gsRun
+      .withSuccessHandler(result => {
+        console.log("✅ Logout berhasil di server:", result);
+      })
+      .withFailureHandler(err => {
+        console.error("❌ Gagal logout di server:", err);
+      })
+      .logoutUser(sessionId);
+
+  } catch (err) {
+    console.error("❌ Error saat logout:", err);
+    alert("Terjadi kesalahan saat logout.");
+  }
+}
+
+</script>
+<style>
+  /* Awal modal disembunyikan */
+/* Modal overlay */
+#leaderboardModal {
+  display: none; /* Awal sembunyi */
+  position: fixed;
+  inset: 0; /* ganti top:0; left:0; width:100%; height:100%; */
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  
+  /* Flexbox center */
+  align-items: center;
+  justify-content: center;
+}
+
+
+#leaderboardModal.show {       /* Tambahkan class 'show' jika mau tampil */
+  display: flex;
+}
+
+#leaderboardContent {
+  background: white;
+  width: 100%;
+  max-width: 400px; /* samakan dengan login */
+  padding: 20px;
+  border-radius: 10px;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+  .juara1 {
+    animation: bling 1s infinite alternate;
+    color: gold;
+    font-weight: bold;
+  }
+
+  @keyframes bling {
+    0% { text-shadow: 0 0 5px gold; }
+    100% { text-shadow: 0 0 20px yellow; }
+  }
+
+/* Overlay loader full screen */
+#loader {
+  display: none; /* default sembunyi */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.7);
+  z-index: 9999;
+
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Spinner bulat */
+.loader-spinner {
+  border: 6px solid #f3f3f3; /* warna abu abu */
+  border-top: 6px solid #f39c12; /* warna emas */
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg);}
+  100% { transform: rotate(360deg);}
+}
+
+#loader p {
+  margin-top: 10px;
+  font-weight: bold;
+  font-size: 16px;
+  color: #333;
+}
+
+/* Styles khusus modal penjelasan */
+.penjelasan-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(3,6,18,0.72);
+  z-index: 10000;
+  padding: 28px;
+  overflow: auto;
+}
+.penjelasan-dialog {
+  background: #0b1220;
+  color: #e6eef6;
+  max-width: 920px;
+  margin: 24px auto;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 14px 40px rgba(2,6,23,.6);
+  border: 1px solid rgba(255,255,255,0.04);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+.penjelasan-dialog h3 { margin: 0 0 12px 0; font-size:18px; text-align:center; }
+.penjelasan-close {
+  position: absolute;
+  right: 26px;
+  top: 26px;
+  background: transparent;
+  color: #cbd5e1;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+.penjelasan-table { width:100%; border-collapse: collapse; margin-top: 8px; }
+.penjelasan-table th, .penjelasan-table td {
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 14px;
+  border-bottom: 1px dashed rgba(255,255,255,0.03);
+}
+.penjelasan-table thead th { color: #94a3b8; font-weight:600; font-size:13px; }
+.icon-cell { width:46px; font-size:18px; text-align:center; }
+.small-note { color:#94a3b8; font-size:13px; margin-top:12px; line-height:1.4; }
+.kv { color:#a3e635; font-weight:700; padding-left:6px; }
+@media (max-width:720px){
+  .penjelasan-dialog { padding:14px; margin:12px auto; }
+  .penjelasan-table th, .penjelasan-table td { padding:8px 6px; font-size:13px; }
+}
+</style>
+
+<script>
+function openLeaderboard() {
+  const loader = document.getElementById("loader");
+  const modal = document.getElementById("leaderboardModal");
+  const tbody = document.getElementById("tableBody");
+  const header = document.getElementById("headerRow");
+
+  if (loader) loader.style.display = "flex";
+
+  tbody.innerHTML = "";
+  
+  // Header kolom tabel leaderboard
+  header.innerHTML = `
+    <div style="flex: 1; text-align: center;">Rank</div>
+    <div style="flex: 2; text-align: center; padding-left: 4px;">Nama Pemain</div>
+    <div style="flex: 2.5; text-align: center;">Perolehan</div>
+  `;
+
+  gsRun.withSuccessHandler(function(data) {
+
+    if (loader) loader.style.display = "none";
+
+    if (!Array.isArray(data) || data.length === 0) {
+      document.getElementById("modalTitle").textContent = "Sponsor : Belum ditentukan";
+      tbody.innerHTML = `
+        <div style="text-align: center; padding: 20px; color: #aaa; font-size: 13px; width: 100%; box-sizing: border-box;">
+          Belum ada data
+        </div>
+      `;
+      modal.style.display = "flex";
+      return;
+    }
+
+    // ===== 1. HITUNG GELAR TERBANYAK (Mengabaikan Akun Pasif/Tidak Aktif) =====
+    const hitungGelar = {};
+    data.forEach(row => {
+      const gelar = row[1] || "Tanpa Gelar";
+      if (gelar.includes("Tidak Aktif") || gelar.includes("Rakyat Pribumi")) return;
+      
+      hitungGelar[gelar] = (hitungGelar[gelar] || 0) + 1;
+    });
+
+    // Menentukan gelar terpopuler minggu berjalan
+    let gelarMingguan = Object.keys(hitungGelar).reduce((a, b) =>
+      hitungGelar[a] > hitungGelar[b] ? a : b
+    , "Sang Penantang 🗡️");
+
+    // Perbarui judul modal dengan nama gelar pemenang utama
+    document.getElementById("modalTitle").textContent = "Medali Sponsor : " + gelarMingguan;
+
+    // ===== 2. FILTER PEMAIN YANG MEMILIKI GELAR TERPOPULER TERSEBUT =====
+    const filtered = data.filter(row => row[1] === gelarMingguan);
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `
+        <div style="text-align: center; padding: 20px; color: #aaa; font-size: 13px; width: 100%; box-sizing: border-box;">
+          Belum ada pemain aktif dengan gelar ini
+        </div>
+      `;
+    } else {
+
+      // ===== 3. URUTKAN ULANG BERDASARKAN MEDALI MINGGU INI (Indeks ke-2) =====
+      filtered.sort((a, b) => {
+        const skorA = parseFloat(a[2]) || 0;
+        const skorB = parseFloat(b[2]) || 0;
+        return skorB - skorA; // Nilai terbesar menempati urutan paling atas
+      });
+
+      // ===== 4. RENDER ELEMEN BARIS KE DALAM TABEL HTML =====
+      filtered.forEach((row, index) => {
+        const divRow = document.createElement("div");
+        
+        // Peringkat 1 mendapatkan efek visual latar belakang glow khusus
+        const bgGlow = index === 0 ? "background: #2c3e50; border-left: 3px solid #00ffcc;" : "background: #1e1e2f;";
+
+        divRow.style.cssText = `
+          display: flex; 
+          align-items: center; 
+          ${bgGlow}
+          padding: 10px 4px; 
+          font-size: 13px; 
+          color: #fff; 
+          border-bottom: 1px solid #3c3c4e;
+          width: 100%;
+          box-sizing: border-box;
+        `;
+
+        // Menentukan lambang ikon lencana peringkat (Rank 1-3 menggunakan emoji)
+        let rankIcon = index + 1;
+        if (index === 0) rankIcon = "🥇";
+        else if (index === 1) rankIcon = "🥈";
+        else if (index === 2) rankIcon = "🥉";
+
+        if (index === 0) divRow.classList.add("juara1");
+
+        // Tampilkan Nama (row[0]), Nama Gelar (row[1]), dan Total Medali Bersih Ter-sinkronisasi (row[2])
+        divRow.innerHTML = `
+          <div style="flex: 1; text-align: center; font-size: ${index < 3 ? '16px' : '13px'};">${rankIcon}</div>
+          <div style="flex: 2; word-break: break-word; text-align: center; padding-left: 4px; font-weight: ${index === 0 ? 'bold' : 'normal'};">${row[0] || "-"}</div>
+          <div style="flex: 2.5; word-break: break-word; text-align: center; color: #00ffcc;">
+            ${row[1] || "-"} 
+            <span style="font-size: 11px; color: #aaa;">${row[2] || 0} Medali</span>
+          </div>
+        `;
+
+        tbody.appendChild(divRow);
+      });
+    }
+
+    modal.style.display = "flex";
+
+  }).setPemainJuaraMingguIni();
+}
+
+
+//load gelar pemain di judul header pemain
+function loadGelar(nama) {
+  const gelarEl = document.getElementById("gelarPemainSpecialis");
+  
+  // Tampilkan status loading sementara
+  if (gelarEl) {
+    gelarEl.innerText = "⏳ Memuat gelar...";
+    gelarEl.style.opacity = "0.6";
+  }
+
+  gsRun
+    .withSuccessHandler(function(res) {
+      if (!res || !res.hasil) {
+        console.warn("⚠️ Data gelar tidak ditemukan untuk:", nama);
+        if (gelarEl) {
+          gelarEl.innerText = "-";
+          gelarEl.style.opacity = "1";
+        }
+        return;
+      }
+
+      // Update UI dengan hasil yang sudah jadi dari server
+      if (gelarEl) {
+        gelarEl.innerText = res.hasil; 
+        gelarEl.style.opacity = "1"; // Kembalikan ke normal
+        gelarEl.style.color = "";    // Reset warna jika sebelumnya merah
+      }
+      
+      console.log("✅ Gelar berhasil dimuat (" + (res.status || "cached") + ")");
+    })
+    .withFailureHandler(function(err) {
+      console.error("❌ Gagal memuat gelar:", err);
+      if (gelarEl) {
+        gelarEl.innerText = "Gagal memuat data";
+        gelarEl.style.color = "red";
+        gelarEl.style.opacity = "1";
+      }
+    })
+    .getGelarPemainSpecialis(nama);
+}
+
+// event listeners (pastikan elemen ada)
+const openBtn = document.getElementById("openLeaderboardBtn");
+if (openBtn) openBtn.addEventListener("click", openLeaderboard);
+
+const closeBtn = document.getElementById("closeLeaderboardBtn");
+if (closeBtn) closeBtn.addEventListener("click", () => {
+  const modal = document.getElementById("leaderboardModal");
+  if (modal) modal.style.display = "none";
+});
+
+window.addEventListener("click", function (event) {
+  const modal = document.getElementById("leaderboardModal");
+  if (modal && event.target === modal) {
+    modal.style.display = "none";
+  }
+});
+
+//buka modal kedua dalam leaderboard
+/* Script pembuka/penutup modal (mendukung 2 tombol tutup jika ada) */
+(function () {
+  const modal = document.getElementById('penjelasanModal');
+  const openBtn = document.getElementById('lihatPenjelasanBtn'); // tombol di modal leaderboard
+  const closeBtns = [
+    document.getElementById('tutupPenjelasanBtn'),
+    document.getElementById('tutupPenjelasanBtn2')
+  ].filter(Boolean);
+
+  function openModal() {
+    modal.style.display = 'block';
+    modal.setAttribute('aria-hidden', 'false');
+    // fokus ke dialog untuk aksesibilitas
+    const dialog = modal.querySelector('.penjelasan-dialog');
+    if (dialog) dialog.focus();
+    // mencegah scroll body
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal() {
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  if (openBtn) openBtn.addEventListener('click', openModal);
+  closeBtns.forEach(b => b.addEventListener('click', closeModal));
+
+  // klik di luar dialog untuk menutup
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  // Escape untuk menutup
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.style.display === 'block') closeModal();
+  });
+})();
+
+const daftarGelar = [
+  "Raja Petarung 👑",
+  "Pejuang Tangguh ⚔️",
+  "Penantang Hebat 💥",
+  "Sang Pengabdi 🛡️",
+  "Sang Bintang ✨",
+  "The Gentleman 🎩",
+  "Otak Jenius 🧠",
+  "Si Penembak Jitu 🎯",
+  "Sang Penantang 🗡️",
+  "Rakyat Pribumi 🧑"
+  ];
+
+//gelar mingguan
+// Nama login diambil dari session/localStorage, fallback ke SESSION_USER
+function getNamaLogin() {
+  return sessionStorage.getItem("namaLogin") || localStorage.getItem("namaLogin") || (typeof SESSION_USER !== "undefined" ? SESSION_USER : "");
+}
+
+// Fungsi buka modal
+function openJuaraMingguan() {
+  document.getElementById("juaraMingguanModal").style.display = "flex";
+  loadJuaraMingguan();
+}
+
+// Fungsi tutup modal
+function closeJuaraMingguan() {
+  document.getElementById("juaraMingguanModal").style.display = "none";
+}
+
+// Load data dari Google Apps Script
+function loadJuaraMingguan() {
+  const loader = document.getElementById("loader");
+  if (loader) loader.style.display = "flex"; // tampilkan loader
+
+  gsRun
+    .withSuccessHandler(data => {
+      renderTabel(data);
+      if (loader) loader.style.display = "none"; // sembunyikan loader setelah render
+    })
+    .withFailureHandler(err => {
+      console.error(err);
+      alert("❌ Gagal mengambil data juara.");
+      if (loader) loader.style.display = "none";
+    })
+    .getJuaraMingguan();
+}
+
+// Render tabel dan filter/search
+function renderTabel(data) {
+  const NAMA_LOGIN = getNamaLogin().toLowerCase();
+  data.sort((a,b) => b.Medali - a.Medali);
+
+  // PERBAIKAN: Mengincar elemen utama #tabelJuara karena tbody sudah ditiadakan
+  const tbody = document.getElementById("tabelJuara");
+  tbody.innerHTML = "";
+
+  const filterGelar = document.getElementById("filterGelar").value.toLowerCase();
+  const searchNama = document.getElementById("searchNama").value.toLowerCase();
+
+  let adaDataTampil = false;
+
+  data.forEach(row => {
+    if ((filterGelar === "" || row.Gelar.toLowerCase() === filterGelar) &&
+        (searchNama === "" || row.Nama.toLowerCase().includes(searchNama))) {
+
+      adaDataTampil = true;
+
+      // PERBAIKAN: Mengubah 'tr' kaku menjadi 'div' Flexbox elastis
+      const divRow = document.createElement("div");
+      divRow.style.cssText = `
+        display: flex; 
+        align-items: center; 
+        background: #ffffff; 
+        padding: 8px 6px; 
+        font-size: 13px; 
+        color: #333; 
+        border-bottom: 1px solid #eee;
+        width: 100%;
+        box-sizing: border-box;
+      `;
+
+      // Menentukan gaya cetak tebal jika nama user cocok dengan nama akun login
+      const isBold = row.Nama.toLowerCase() === NAMA_LOGIN ? "font-weight: bold; color: #000;" : "";
+
+      // PERBAIKAN: Menyamakan porsi kolom (1.5 : 2 : 1) dengan header HTML & mengaktifkan word-break
+      divRow.innerHTML = `
+        <div style="flex: 1.5; word-break: break-word; padding-left: 2px; text-align: left; ${isBold}">${row.Nama}</div>
+        <div style="flex: 2; word-break: break-word; text-align: left; color: #555;">${row.Gelar}</div>
+        <div style="flex: 1; word-break: break-word; text-align: center; font-weight: bold;">${row.Medali}</div>
+      `;
+
+      tbody.appendChild(divRow);
+    }
+  });
+
+  // Tampilan fallback jika hasil pencarian/filter tidak ditemukan
+  if (!adaDataTampil) {
+    tbody.innerHTML = `
+      <div style="text-align: center; padding: 20px; color: #777; font-size: 13px; width: 100%; box-sizing: border-box;">
+        Tidak ada data juara yang cocok.
+      </div>
+    `;
+  }
+}
+
+// Event filter & search
+document.getElementById("filterGelar").addEventListener("change", loadJuaraMingguan);
+document.getElementById("searchNama").addEventListener("input", loadJuaraMingguan);
+
+//------------------------------------
+//gelar juara bulanan
+function getNamaLogin() {
+  return sessionStorage.getItem("namaLogin") || localStorage.getItem("namaLogin") || (typeof SESSION_USER !== "undefined" ? SESSION_USER : "");
+}
+
+// Buka modal Bulanan
+function openJuaraBulanan() {
+  document.getElementById("juaraBulananModal").style.display = "flex";
+  loadJuaraBulanan();
+}
+
+// Tutup modal
+function closeJuaraBulanan() {
+  document.getElementById("juaraBulananModal").style.display = "none";
+}
+
+// Load data dari sheet Bulanan
+function loadJuaraBulanan() {
+  const loader = document.getElementById("loader");
+  if (loader) loader.style.display = "flex";
+
+  gsRun
+    .withSuccessHandler(data => {
+      renderTabelBulanan(data);
+      if (loader) loader.style.display = "none";
+    })
+    .withFailureHandler(err => {
+      console.error(err);
+      alert("❌ Gagal mengambil data bulanan.");
+      if (loader) loader.style.display = "none";
+    })
+    .getJuaraBulanan();
+}
+
+// Render tabel Bulanan
+function renderTabelBulanan(data) {
+  const NAMA_LOGIN = getNamaLogin().toLowerCase();
+
+  // Gabung data per nama dan hitung total medali
+  const pemainMap = {};
+  data.forEach(r => {
+    const nama = r.Nama;
+    const gelar = r.Gelar;
+    const medali = Number(r.Medali) || 0;
+
+    if (!pemainMap[nama]) {
+      pemainMap[nama] = { Nama: nama, Gelar: gelar, Medali: medali };
+    } else {
+      pemainMap[nama].Medali += medali;
+      pemainMap[nama].Gelar = gelar;
+    }
+  });
+
+  const hasil = Object.values(pemainMap).sort((a,b) => b.Medali - a.Medali);
+
+  // PERBAIKAN: Menargetkan elemen utama karena tbody telah ditiadakan
+  const tbody = document.getElementById("tabelJuaraBulanan");
+  tbody.innerHTML = "";
+
+  const filterGelar = document.getElementById("filterGelarBulanan").value.toLowerCase();
+  const searchNama = document.getElementById("searchNamaBulanan").value.toLowerCase();
+
+  let adaDataTampil = false;
+
+  hasil.forEach(row => {
+    if ((filterGelar === "" || row.Gelar.toLowerCase() === filterGelar) &&
+        (searchNama === "" || row.Nama.toLowerCase().includes(searchNama))) {
+
+      adaDataTampil = true;
+
+      // PERBAIKAN: Mengubah baris kaku 'tr' menjadi 'div' Flexbox elastis
+      const divRow = document.createElement("div");
+      divRow.style.cssText = `
+        display: flex; 
+        align-items: center; 
+        background: #ffffff; 
+        padding: 8px 6px; 
+        font-size: 13px; 
+        color: #333; 
+        border-bottom: 1px solid #eee;
+        width: 100%;
+        box-sizing: border-box;
+      `;
+
+      // Logika bold untuk nama login aktif
+      const isBold = row.Nama.toLowerCase() === NAMA_LOGIN ? "font-weight: bold; color: #000;" : "";
+
+      // PERBAIKAN: Menyamakan porsi kolom (1.5 : 2 : 1) dengan header HTML & word-break
+      divRow.innerHTML = `
+        <div style="flex: 1.5; word-break: break-word; padding-left: 2px; text-align: left; ${isBold}">${row.Nama}</div>
+        <div style="flex: 2; word-break: break-word; text-align: left; color: #555;">${row.Gelar}</div>
+        <div style="flex: 1; word-break: break-word; text-align: center; font-weight: bold;">${row.Medali}</div>
+      `;
+
+      tbody.appendChild(divRow);
+    }
+  });
+
+  // Tampilan jika filter tidak menemukan data apapun
+  if (!adaDataTampil) {
+    tbody.innerHTML = `
+      <div style="text-align: center; padding: 20px; color: #777; font-size: 13px; width: 100%; box-sizing: border-box;">
+        Tidak ada data juara bulanan yang cocok.
+      </div>
+    `;
+  }
+}
+
+// Event filter & search
+document.getElementById("filterGelarBulanan").addEventListener("change", loadJuaraBulanan);
+document.getElementById("searchNamaBulanan").addEventListener("input", loadJuaraBulanan);
+
+//----------------------------------------------------------------------------------------------
+//gelar juara 4 bulanan
+function getNamaLogin() {
+  return sessionStorage.getItem("namaLogin") || localStorage.getItem("namaLogin") || (typeof SESSION_USER !== "undefined" ? SESSION_USER : "");
+}
+
+// Buka modal Bulanan
+function openJuara4Bulanan() {
+  document.getElementById("juara4BulananModal").style.display = "flex";
+  loadJuara4Bulanan();
+}
+
+// Tutup modal
+function closeJuara4Bulanan() {
+  document.getElementById("juara4BulananModal").style.display = "none";
+}
+
+// Load data dari sheet Bulanan
+function loadJuara4Bulanan() {
+  const loader = document.getElementById("loader");
+  if (loader) loader.style.display = "flex";
+
+  gsRun
+    .withSuccessHandler(data => {
+      renderTabel4Bulanan(data);
+      if (loader) loader.style.display = "none";
+    })
+    .withFailureHandler(err => {
+      console.error(err);
+      alert("❌ Gagal mengambil data bulanan.");
+      if (loader) loader.style.display = "none";
+    })
+    .getJuara4Bulanan();
+}
+
+// Render tabel Bulanan
+function renderTabel4Bulanan(data) {
+  const NAMA_LOGIN = getNamaLogin().toLowerCase();
+
+  // Gabung data per nama dan hitung total medali
+  const pemainMap = {};
+  data.forEach(r => {
+    const nama = r.Nama;
+    const gelar = r.Gelar;
+    const medali = Number(r.Medali) || 0;
+
+    if (!pemainMap[nama]) {
+      pemainMap[nama] = { Nama: nama, Gelar: gelar, Medali: medali };
+    } else {
+      pemainMap[nama].Medali += medali;
+      pemainMap[nama].Gelar = gelar;
+    }
+  });
+
+  const hasil = Object.values(pemainMap).sort((a,b) => b.Medali - a.Medali);
+
+  // PERBAIKAN: Menargetkan elemen utama karena tbody telah ditiadakan
+  const tbody = document.getElementById("tabelJuara4Bulanan");
+  tbody.innerHTML = "";
+
+  const filterGelar = document.getElementById("filterGelar4Bulanan").value.toLowerCase();
+  const searchNama = document.getElementById("searchNama4Bulanan").value.toLowerCase();
+
+  let adaDataTampil = false;
+
+  hasil.forEach(row => {
+    if ((filterGelar === "" || row.Gelar.toLowerCase() === filterGelar) &&
+        (searchNama === "" || row.Nama.toLowerCase().includes(searchNama))) {
+
+      adaDataTampil = true;
+
+      // PERBAIKAN: Mengubah baris kaku 'tr' menjadi 'div' Flexbox elastis
+      const divRow = document.createElement("div");
+      divRow.style.cssText = `
+        display: flex; 
+        align-items: center; 
+        background: #ffffff; 
+        padding: 8px 6px; 
+        font-size: 13px; 
+        color: #333; 
+        border-bottom: 1px solid #eee;
+        width: 100%;
+        box-sizing: border-box;
+      `;
+
+      // Logika bold untuk nama login aktif
+      const isBold = row.Nama.toLowerCase() === NAMA_LOGIN ? "font-weight: bold; color: #000;" : "";
+
+      // PERBAIKAN: Menyamakan porsi kolom (1.5 : 2 : 1) dengan header HTML & word-break
+      divRow.innerHTML = `
+        <div style="flex: 1.5; word-break: break-word; padding-left: 2px; text-align: left; ${isBold}">${row.Nama}</div>
+        <div style="flex: 2; word-break: break-word; text-align: left; color: #555;">${row.Gelar}</div>
+        <div style="flex: 1; word-break: break-word; text-align: center; font-weight: bold;">${row.Medali}</div>
+      `;
+
+      tbody.appendChild(divRow);
+    }
+  });
+
+  // Tampilan jika filter tidak menemukan data apapun
+  if (!adaDataTampil) {
+    tbody.innerHTML = `
+      <div style="text-align: center; padding: 20px; color: #777; font-size: 13px; width: 100%; box-sizing: border-box;">
+        Tidak ada data juara 4 bulanan yang cocok.
+      </div>
+    `;
+  }
+}
+
+// Event filter & search
+document.getElementById("filterGelar4Bulanan").addEventListener("change", loadJuara4Bulanan);
+document.getElementById("searchNama4Bulanan").addEventListener("input", loadJuara4Bulanan);
+
+//-----------------------------------------------
+//gelar juara Tahunan
+function getNamaLogin() {
+  return sessionStorage.getItem("namaLogin") || localStorage.getItem("namaLogin") || (typeof SESSION_USER !== "undefined" ? SESSION_USER : "");
+}
+
+// Buka modal Bulanan
+function openJuaraTahunan() {
+  document.getElementById("juaraTahunanModal").style.display = "flex";
+  loadJuaraTahunan();
+}
+
+// Tutup modal
+function closeJuaraTahunan() {
+  document.getElementById("juaraTahunanModal").style.display = "none";
+}
+
+// Load data dari sheet Bulanan
+function loadJuaraTahunan() {
+  const loader = document.getElementById("loader");
+  if (loader) loader.style.display = "flex";
+
+  gsRun
+    .withSuccessHandler(data => {
+      renderTabelTahunan(data);
+      if (loader) loader.style.display = "none";
+    })
+    .withFailureHandler(err => {
+      console.error(err);
+      alert("❌ Gagal mengambil data Tahunan.");
+      if (loader) loader.style.display = "none";
+    })
+    .getJuaraTahunan();
+}
+
+// Render tabel Tahunan
+function renderTabelTahunan(data) {
+  const NAMA_LOGIN = getNamaLogin().toLowerCase();
+
+  // Gabung data per nama dan hitung total medali
+  const pemainMap = {};
+  data.forEach(r => {
+    const nama = r.Nama;
+    const gelar = r.Gelar;
+    const medali = Number(r.Medali) || 0;
+
+    if (!pemainMap[nama]) {
+      pemainMap[nama] = { Nama: nama, Gelar: gelar, Medali: medali };
+    } else {
+      pemainMap[nama].Medali += medali;
+      pemainMap[nama].Gelar = gelar;
+    }
+  });
+
+  const hasil = Object.values(pemainMap).sort((a,b) => b.Medali - a.Medali);
+
+  // PERBAIKAN: Menargetkan elemen utama karena tbody telah ditiadakan
+  const tbody = document.getElementById("tabelJuaraTahunan");
+  tbody.innerHTML = "";
+
+  const filterGelar = document.getElementById("filterGelarTahunan").value.toLowerCase();
+  const searchNama = document.getElementById("searchNamaTahunan").value.toLowerCase();
+
+  let adaDataTampil = false;
+
+  hasil.forEach(row => {
+    if ((filterGelar === "" || row.Gelar.toLowerCase() === filterGelar) &&
+        (searchNama === "" || row.Nama.toLowerCase().includes(searchNama))) {
+
+      adaDataTampil = true;
+
+      // PERBAIKAN: Mengubah baris kaku 'tr' menjadi 'div' Flexbox elastis
+      const divRow = document.createElement("div");
+      divRow.style.cssText = `
+        display: flex; 
+        align-items: center; 
+        background: #ffffff; 
+        padding: 8px 6px; 
+        font-size: 13px; 
+        color: #333; 
+        border-bottom: 1px solid #eee;
+        width: 100%;
+        box-sizing: border-box;
+      `;
+
+      // Logika bold untuk nama login aktif
+      const isBold = row.Nama.toLowerCase() === NAMA_LOGIN ? "font-weight: bold; color: #000;" : "";
+
+      // PERBAIKAN: Menyamakan porsi kolom (1.5 : 2 : 1) dengan header HTML & word-break
+      divRow.innerHTML = `
+        <div style="flex: 1.5; word-break: break-word; padding-left: 2px; text-align: left; ${isBold}">${row.Nama}</div>
+        <div style="flex: 2; word-break: break-word; text-align: left; color: #555;">${row.Gelar}</div>
+        <div style="flex: 1; word-break: break-word; text-align: center; font-weight: bold;">${row.Medali}</div>
+      `;
+
+      tbody.appendChild(divRow);
+    }
+  });
+
+  // Tampilan jika filter tidak menemukan data apapun
+  if (!adaDataTampil) {
+    tbody.innerHTML = `
+      <div style="text-align: center; padding: 20px; color: #777; font-size: 13px; width: 100%; box-sizing: border-box;">
+        Tidak ada data juara tahunan yang cocok.
+      </div>
+    `;
+  }
+}
+
+// Event filter & search
+document.getElementById("filterGelarTahunan").addEventListener("change", loadJuaraTahunan);
+document.getElementById("searchNamaTahunan").addEventListener("input", loadJuaraTahunan);
+
+//------------------------------------------------
+
+function openMedali() {
+  const nama = user?.nama || SESSION_USER || sessionStorage.getItem("namaLogin") || "Player";
+
+  document.getElementById("loader").style.display = "flex";
+
+  gsRun.withSuccessHandler(dataRaw => {
+    document.getElementById("loader").style.display = "none";
+
+    const data = Array.isArray(dataRaw)
+      ? dataRaw.map(v => (v !== undefined && v !== null) ? Number(v) : 0)
+      : [];
+
+    let totalJenis = 0;
+    const container = document.getElementById("gelarList");
+    container.innerHTML = "";
+
+    // Inject responsive font style
+    if (!document.getElementById("styleGelar")) {
+      const style = document.createElement("style");
+      style.id = "styleGelar";
+      style.textContent = `
+        .cardGelar {
+          font-size: clamp(10px, 2.5vw, 14px);
+          word-break: break-word;
+        }
+        .cardGelar .badge {
+          font-size: clamp(9px, 2vw, 13px);
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    daftarGelar.forEach((gelarName, i) => {
+      const jumlah = Number(data[i] || 0);
+
+      if (jumlah > 0) totalJenis++;
+
+      const card = document.createElement("div");
+      card.className = "cardGelar";
+
+      card.innerHTML = `
+        ${gelarName}
+        <div class="badge">${jumlah}</div>
+      `;
+
+      card.addEventListener("click", () => {
+        const narasi = daftarNarasi[gelarName] || "Belum ada narasi.";
+        document.getElementById("narasiText").innerText = narasi;
+        document.getElementById("narasiModal").style.display = "flex";
+      });
+
+      container.appendChild(card);
+    });
+
+    document.getElementById("totalGelar").innerText =
+      `${totalJenis} dari ${daftarGelar.length}`;
+
+    const persen = Math.round((totalJenis / daftarGelar.length) * 100);
+    document.getElementById("progressGelar").style.width = persen + "%";
+
+    document.getElementById("medaliModal").style.display = "flex";
+
+  }).getGelarPemain(nama);
+}
+
+// daftar gelar & narasi (GLOBAL)
+window.daftarGelar = [
+  "Raja Petarung 👑",
+  "Pejuang Tangguh ⚔️",
+  "Penantang Hebat 💥",
+  "Sang Pengabdi 🛡️",
+  "Sang Bintang ✨",
+  "The Gentleman 🎩",
+  "Otak Jenius 🧠",
+  "Si Penembak Jitu 🎯",
+  "Sang Penantang 🗡️",
+  "Rakyat Pribumi 🧑"
+];
+
+window.daftarNarasi = {
+  "Raja Petarung 👑": `📖 Cerita di balik "Top Global Raja Petarung 👑"
+
+Di setiap arena selalu ada pemenang, namun hanya satu yang mampu berdiri di singgasana tertinggi. Dengan 10 kemenangan atau lebih dalam seminggu, ia bukan lagi sekadar pemain — ia adalah penguasa medan laga.  
+
+Setiap lawan yang ia hadapi telah menjadi saksi, bahwa dominasi bukan kebetulan, melainkan hasil dari keberanian, konsistensi, dan semangat juang tanpa henti. Namanya bergema di seluruh penjuru, ditakuti lawan, dihormati kawan.  
+
+⚔️ Narasi: 
+“Dialah Raja Petarung — simbol supremasi dan kekuasaan di arena. Ia adalah bukti nyata bahwa kerja keras, tekad, dan keberanian dapat melahirkan legenda hidup.  
+
+Dengan mahkota kejayaan di kepalanya, ia menatap medan laga bukan sebagai tantangan, tetapi sebagai wilayah kekuasaannya.  
+
+Raja Petarung adalah puncak dari semua pejuang, pengingat bahwa hanya mereka yang tak kenal lelah, yang pantas duduk di takhta tertinggi sebagai penguasa kemenangan.”  
+
+📌 Syarat: Memiliki Menang ≥ 10 kali`,
+
+  "Pejuang Tangguh ⚔️": `📖 Cerita di balik "Top Global Pejuang Tangguh ⚔️"
+
+Ia bukan sekadar penantang, melainkan sosok yang kokoh berdiri di garis depan. Dengan 5 hingga 9 kemenangan, ia telah membuktikan bahwa konsistensi adalah senjatanya.  
+
+Setiap pertandingan menjadi saksi, bahwa ia mampu mengubah peluang menjadi kemenangan. Ia adalah pemain solid, seseorang yang bisa diandalkan untuk membawa pulang hasil terbaik. 
+
+⚔️ Narasi: 
+“Dialah Pejuang Tangguh — simbol keteguhan dan kekuatan sejati. Ia hadir bukan untuk satu kemenangan sesaat, tetapi untuk menorehkan jejak berulang kali di medan laga.  
+
+Dengan perisai ketekunan dan pedang semangat, ia menjelma menjadi dinding kokoh bagi timnya dan ancaman nyata bagi lawan.  
+
+Pejuang Tangguh adalah bukti bahwa kemenangan bukan hanya soal bakat, tapi juga soal konsistensi, keberanian, dan tekad yang tidak pernah goyah. Ia adalah lambang daya tahan dan kekuatan yang teruji waktu.”  
+
+📌 Syarat: Memiliki Menang 5–9 kali dalam minggu ini`,
+
+  "Penantang Hebat 💥": `📖 Cerita di balik "Top Global Penantang Hebat 💥"
+
+Ia mungkin baru memulai langkahnya di arena, namun sudah berhasil mengukir lebih dari satu kemenangan. Dua kali atau lebih ia membuktikan diri,  
+bahwa tekad dan keberaniannya bukan sekadar kebetulan.  
+
+Setiap pertandingannya adalah tanda bahwa ia semakin diperhitungkan. Ia tidak lagi sekadar peserta, tapi calon legenda yang siap menantang siapa pun yang berdiri di hadapannya. Sorak sorai mulai mengikuti namanya, dan para pemain lain mulai menaruh hormat pada kiprahnya.  
+
+⚔️ Narasi: 
+“Dialah Penantang Hebat — simbol kebangkitan seorang pejuang. Ia mengajarkan bahwa setiap juara selalu berawal dari satu langkah kecil, dan ketika langkah itu terus diperjuangkan, ia menjelma menjadi kekuatan baru yang tidak bisa diabaikan.  
+
+Dengan lebih dari dua kemenangan di genggaman, ia adalah bukti nyata bahwa konsistensi melahirkan harapan, dan harapan melahirkan legenda.  
+
+Penantang Hebat adalah api semangat yang baru menyala, tanda bahwa panggung besar telah menemukan pemain barunya, dan dunia harus bersiap untuk menyambut kebesarannya.”  
+
+📌 Syarat: Memiliki Menang ≥ 2 kali dalam minggu ini`,
+
+  "Sang Pengabdi 🛡️": `📖 Cerita di balik "Top Global Sang Pengabdi 🛡️"
+
+Ia bukan sekadar pemain, ia adalah jiwa yang selalu hadir. Hari demi hari, menit demi menit, ia habiskan waktunya di arena ini. Lebih dari 100 menit telah ia jalani, bukan karena terpaksa, melainkan karena cinta pada permainan, persahabatan, dan suasana.  
+
+Ia adalah wajah yang selalu dikenali, sosok yang membuat kita selalu hidup bersama kehadirannya. Setiap sesi, setiap booking, adalah bukti kesetiaannya.  
+
+⚔️ Narasi: 
+“Dialah Sang Pengabdi — simbol loyalitas dan dedikasi. Ia bukan hanya pemain, ia adalah bagian dari rumah ini. Ketika orang lain datang dan pergi, ia tetap bertahan, menemani, dan menghidupkan suasana.  
+
+Dalam catatan waktu, namanya selalu muncul, tercatat sebagai pejuang yang tidak pernah bosan hadir. Ia membuktikan bahwa kemenangan terbesar bukan hanya skor, tetapi kesetiaan yang tak tergoyahkan.  
+
+Sang Pengabdi adalah tameng, penjaga semangat kebersamaan, dan pengingat bahwa dalam permainan, yang paling berharga adalah mereka yang selalu ada.”  
+
+📌 Syarat: Total durasi bermain ≥ 100 menit`,
+
+  "Sang Bintang ✨": `📖 Cerita di balik "Top Global Sang Bintang ✨"
+
+Ia mungkin tidak selalu menang di setiap pertandingan, namun sekali ia bersinar, cahayanya menyilaukan seluruh arena. Dengan skor tinggi mencapai 8 atau lebih, ia menunjukkan performa puncak, momen di mana semua mata tertuju kepadanya, dan sorak sorai mengiringi namanya.  
+
+Kemenangan total mungkin tidak selalu berpihak padanya, tapi satu performa brilian sudah cukup untuk membuktikan: ia punya cahaya sendiri yang tak bisa dipadamkan.  
+
+⚔️ Narasi: 
+“Dialah Sang Bintang — simbol kilauan talenta dan momentum emas. Ia mengajarkan bahwa tidak perlu selalu sempurna untuk diingat, cukup satu pertandingan luar biasa untuk tercatat sebagai pahlawan.  
+
+Dalam sorot lampu, ia bukan hanya pemain, ia adalah pusat perhatian, inspirasi bagi semua yang melihatnya. Setiap poin, setiap skor tinggi yang ia raih, adalah bukti bahwa bintang sejati hanya perlu satu kesempatan untuk bersinar.  
+
+Sang Bintang adalah cahaya dalam kegelapan — pengingat bahwa dalam setiap kompetisi, selalu ada momen magis yang membuat kita percaya bahwa siapa pun bisa jadi legenda.”  
+
+📌 Syarat: Memiliki Skor terbaik ≥ 8`,
+
+  "The Gentleman 🎩": `📖 Cerita di balik "Top Global The Gentleman 🎩"
+
+Ia bukan sekadar pemain, ia adalah sosok yang menjadikan arena sebagai tempat kehormatan. Hasil imbang bukan tanda kelemahan, melainkan bukti ia mampu menjaga keseimbangan. Tiga kali atau lebih ia meraih hasil seri, menunjukkan bahwa baginya permainan bukan hanya soal menang, tetapi soal bagaimana bermain dengan adil, tenang, dan penuh rasa hormat.  
+
+Ia hadir sebagai pengingat: skill sejati tidak hanya diukur dari trofi, tetapi dari cara seseorang menjaga kehormatan permainan itu sendiri.  
+
+⚔️ Narasi: 
+“Dialah The Gentleman — simbol sportivitas dan stabilitas. Ia berdiri tegak, tidak silau dengan kemenangan, tidak rapuh dengan kekalahan. Ia bermain untuk menghormati lawan, menghormati aturan, dan menghormati dirinya sendiri.  
+
+Hasil imbang yang ia kumpulkan bukan sekadar angka, tetapi bukti ia selalu mengendalikan permainan, tidak terbawa emosi, dan tetap menjaga keseimbangan dalam setiap langkah.  
+
+The Gentleman adalah lambang kelas sejati — bahwa dalam setiap kompetisi, yang abadi bukanlah skor, melainkan cara kita menjaga martabat dalam bertanding.”  
+
+📌 Syarat: Memiliki hasil Seri ≥ 3 kali`,
+
+  "Otak Jenius 🧠": `📖 Cerita di balik "Top Global Otak Jenius 🧠"
+
+Ia tidak selalu punya skor tertinggi, tidak selalu membantai lawan dengan kill yang banyak, namun di balik layar ia menyusun langkah demi langkah seperti bidak catur. Setiap gerakannya bukan kebetulan, tapi hasil dari perhitungan, prediksi, dan kecerdikan. Ia membaca peta, membaca lawan, membaca momentum — lalu mengambil keputusan yang mengubah jalannya pertandingan. Dialah arsitek kemenangan, pemilik otak yang tak hanya bermain, tapi juga merancang sejarah.
+
+⚔️ Narasi: 
+“Dialah Otak Jenius — sang perancang strategi, yang mengajarkan bahwa kemenangan bukan hanya soal kecepatan tangan, tetapi juga soal kedalaman pikiran. Ia berdiri sebagai simbol kecerdasan kolektif, seseorang yang membuktikan bahwa ‘akal bisa mengalahkan kekuatan’. Dalam catatan lomba, namanya tertulis sebagai Best Strategi, karena tanpa ia, kemenangan hanyalah mimpi kosong.  
+
+Otak Jenius adalah bintang tak terlihat, pemain yang pikirannya bekerja lebih cepat daripada waktu, dan strateginya abadi sebagai senjata paling berbahaya dalam setiap pertandingan.”  
+
+📌 Syarat: Catatan lomba dengan keterangan : best strategi`,
+
+  "Si Penembak Jitu 🎯": `📖 Cerita di balik "Top Global Si Penembak Jitu 🎯"
+
+Ia dikenal karena ketajaman fokus dan instingnya yang mematikan. Setiap kali masuk arena, ia bagaikan mata elang yang selalu mengincar titik terlemah musuh. Kill demi kill, skor demi skor, ia kumpulkan bukan dengan kebetulan, tapi dengan konsistensi dan keberanian menanggung risiko. Ia adalah simbol akurasi, simbol kecepatan mengambil keputusan, dan simbol bahwa kemenangan bisa lahir dari satu tembakan yang tepat waktu.
+
+⚔️ Narasi: 
+“Dialah Si Penembak Jitu — sang penghancur peluang lawan, yang membuktikan bahwa satu skor bisa mengubah jalannya pertandingan. Ia berdiri tegak di puncak klasemen Top Scorer, bukan karena ocehan tak jelas, tetapi karena peluru dan fokusnya yang berbicara lebih keras.  
+
+Setiap tembakannya adalah cerita, setiap kill-nya adalah jejak keberanian. Ia bukan hanya pemain, ia adalah legenda presisi — sosok yang membuat arena terdiam karena semua tahu, sekali ia mengunci target, mustahil ia meleset. Si Penembak Jitu adalah lambang konsistensi dan fokus; ia abadi sebagai ikon para pemburu kemenangan sejati.”
+
+📌 Syarat: Catatan lomba dengan keterangan : top scorer`,
+
+  "Sang Penantang 🗡️": `📖 Cerita di balik "Top Global Sang Penantang 🗡️"
+
+Ia adalah petarung gigih, walau waktu mainnya terbatas (kurang dari 100 menit/minggu), tetap berani masuk arena. Ia simbol konsistensi: walau singkat, tetap hadir, tetap coba, tidak menyerah. Ia wakil dari anak-anak yang nggak bisa main lama tapi tetap ikut persaingan. Ia bisa disebut “Legenda Waktu Singkat” → karena dengan durasi minim, masih bisa naik peringkat.
+
+⚔️ Narasi: 
+“Dialah Sang Penantang — mereka yang melawan waktu, melawan batas, dan tak pernah menyerah meski peluang begitu kecil.
+Ia hadir bukan karena punya segalanya, tapi karena keberanian untuk tetap berdiri. Dalam 100 menit yang singkat, ia bertaruh jiwa dan raga, demi membuktikan bahwa kemenangan bukan soal durasi, tapi soal tekad. Sang Penantang adalah api yang tak padam — simbol perlawanan abadi, suara dari mereka yang tak takut dicatat sejarah sebagai pejuang sejati.”`,
+
+  "Rakyat Pribumi 🧑": `📖 Cerita di balik "Rakyat Pribumi 🧑"
+
+Tidak semua datang untuk bertarung, ada juga yang hadir hanya untuk menjadi bagian dari keluarga besar. Ia mungkin tidak ikut bermain, namun tetap setia login dan hadir dalam sistem booking.  
+
+Kehadirannya adalah tanda ikatan, bahwa menjadi anggota bukan hanya soal kemenangan, tetapi juga soal kebersamaan dan rasa memiliki. Ia adalah wajah ramah di antara para petarung, pengingat bahwa komunitas ini adalah rumah untuk semua.  
+
+⚔️ Narasi: 
+“Dialah Rakyat Pribumi — simbol kesetiaan dan identitas. Ia hadir bukan untuk mencatat skor, melainkan untuk menjaga api kebersamaan tetap menyala.  
+
+Dengan langkah sederhana login setiap kali, ia menunjukkan bahwa kebersamaan dimulai dari hal kecil, dari rasa ingin tetap terhubung.  
+
+Rakyat Pribumi adalah fondasi dari keluarga besar ini, suara hati komunitas yang tidak pernah hilang, dan bukti bahwa di balik setiap juara, selalu ada rumah tempat mereka kembali.”`
+};
+
+function openHallOfFame() {
+  const contentEl = document.getElementById("hallOfFameContent");
+  const loaderEl = document.getElementById("loader");
+
+  if (!contentEl || !loaderEl) return;
+
+  // PERBAIKAN: Diubah menjadi "flex" agar mengikuti CSS container yang center
+  document.getElementById("modalHallOfFame").style.display = "flex";
+  contentEl.innerHTML = "";
+  loaderEl.style.display = "flex"; 
+
+  console.log("👑 [TRACK] Klik icon Raja → ambil data HallOfFame...");
+
+  gsRun
+    .withSuccessHandler(function(data) {
+      loaderEl.style.display = "none"; 
+      console.log("📦 [DEBUG] Data diterima dari server:", data);
+
+      if (!data || data.length === 0) {
+        contentEl.innerHTML = "<p style='text-align:center; color:#999; font-size:15px; margin-top:20px;'>❌ Tidak ada data Hall of Fame.</p>";
+        return;
+      }
+
+      const sortedData = [...data].reverse();
+
+      let html = "<ul style='list-style:none; padding:0; margin:0;'>";
+      sortedData.forEach(function(row) {
+        const highlightStyle = row.isLatest 
+          ? "background: linear-gradient(90deg, #ffd700, #ffec99); box-shadow:0 4px 12px rgba(255,215,0,0.3);" 
+          : "background:#f9f9f9; box-shadow:0 2px 6px rgba(0,0,0,0.05);";
+
+        html += `<li style="margin:10px 0; padding:12px 16px; border-radius:12px; ${highlightStyle} display:flex; justify-content:space-between; align-items:center; gap:12px; font-size:14px; font-weight:500; overflow:hidden;">
+          <span style="flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            <b>${row.nama}</b> <span style="color:#333; font-weight:normal;">– ${row.gelar}</span>
+          </span>
+          <span style="color:#666; font-size:12px; font-weight:400; flex-shrink:0; white-space:nowrap;">
+            📅 ${row.periode}
+          </span>
+        </li>`;
+      });
+      html += "</ul>";
+
+      contentEl.innerHTML = html;
+    })
+    .withFailureHandler(function(err) {
+      loaderEl.style.display = "none"; 
+      console.error("❌ Gagal ambil data HallOfFame:", err);
+      contentEl.innerHTML = "<p style='text-align:center; color:red; font-size:14px; margin-top:20px;'>❌ Terjadi kesalahan saat memuat Hall of Fame</p>";
+      alert("Terjadi kesalahan saat memuat Hall of Fame. Cek log Apps Script!");
+    })
+    .getHallOfFame();
+}
+
+
+let leaderboardData = [];
+
+function showMedali(callback) {
+
+  const modal = document.getElementById('medaliModal');
+  const container = document.getElementById('gelarList');
+  const totalElem = document.getElementById('totalGelar');
+  const progress = document.getElementById('progressGelar');
+
+  if (!modal || !container || !totalElem || !progress) {
+    console.error("⚠️ Elemen modal tidak ditemukan!");
+    if (callback) callback();
+    return;
+  }
+
+  modal.style.display = 'flex';
+
+  container.style.display = "block";
+  container.innerHTML = `
+
+  <div style="margin-bottom:12px;">
+    <input 
+      id="searchPlayer"
+      type="text"
+      placeholder="🔎 Cari pemain..."
+      style="
+        width:100%;
+        padding:12px;
+        border-radius:10px;
+        border:1px solid #ccc;
+        font-size:15px; /* Ditingkatkan ke 15px agar HP tidak otomatis auto-zoom saat fokus input */
+        box-sizing:border-box;
+      "
+      oninput="cariPemain()"
+    >
+  </div>
+
+  <!-- Menggunakan CSS Grid Responsif: 1 kolom di HP, otomatis 2 kolom di layar lebar (min 280px per kartu) -->
+  <div id="leaderboardList"
+    style="
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap:10px;
+    ">
+    <p style='grid-column:1/-1;text-align:center;color:#999;font-size:14px;padding:20px 0;'>
+      ⏳ Memuat leaderboard...
+    </p>
+  </div>
+
+  `;
+
+  progress.style.width = "20%";
+
+  gsRun
+    .withSuccessHandler(function(data) {
+
+      if (!data || !Array.isArray(data)) {
+
+        document.getElementById("leaderboardList").innerHTML =
+          "<p style='grid-column:1/-1;text-align:center;color:#999;font-size:14px;padding:20px 0;'>Belum ada data medali.</p>";
+
+        totalElem.textContent = "0";
+        progress.style.width = "0%";
+
+        if (callback) callback();
+        return;
+      }
+
+      leaderboardData = data;
+
+      renderLeaderboard(data);
+
+      totalElem.textContent = data.length;
+      progress.style.width = "100%";
+
+      if (callback) callback();
+    })
+    .withFailureHandler(function(err){
+
+      console.error("❌ Gagal ambil data medali:", err);
+
+      document.getElementById("leaderboardList").innerHTML =
+        "<p style='grid-column:1/-1;text-align:center;color:red;font-size:14px;padding:20px 0;'>Gagal memuat leaderboard.</p>";
+
+      progress.style.width = "0%";
+
+      if (callback) callback();
+    })
+    .getPeringkatMedali();
+}
+
+function renderLeaderboard(data){
+
+  const list = document.getElementById('leaderboardList');
+  if (!list) return;
+
+  list.innerHTML = "";
+
+  const fragment = document.createDocumentFragment();
+
+  data.forEach(row => {
+
+    const div = document.createElement('div');
+
+    // Gaya dasar kartu peringkat (Sama di PC dan HP)
+    div.style.background = "#fafafa";
+    div.style.borderRadius = "10px";
+    div.style.boxShadow = "0 2px 6px rgba(0,0,0,0.06)";
+    div.style.border = "1px solid #eee";
+    div.style.boxSizing = "border-box";
     
+    // Tampilan Baris Horizontal Universal
+    div.style.display = "flex";
+    div.style.alignItems = "center";
+    div.style.justifyContent = "space-between";
+    div.style.padding = "12px 16px";
+    div.style.textAlign = "left";
+
+    div.innerHTML = `
+      <!-- Sisi Kiri: Peringkat dan Nama Pemain (Dipaksa 1 baris, memotong otomatis dengan '...') -->
+      <div style="display:flex; align-items:center; gap:12px; min-width:0; flex:1; margin-right:12px;">
+        <span style="font-weight:bold; color:#ff9800; font-size:15px; min-width:28px; flex-shrink:0;">#${row.rank}</span>
+        <span style="font-weight:600; color:#333; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${row.nama}</span>
+      </div>
+      
+      <!-- Sisi Kanan: Jumlah Medali (Tetap kokoh di kanan) -->
+      <div style="font-weight:bold; color:#555; font-size:13px; flex-shrink:0; white-space:nowrap;">
+        🥇 ${row.total} <span style="font-weight:normal; color:#888; font-size:12px;">Medali</span>
+      </div>
+    `;
+
+    fragment.appendChild(div);
+
+  });
+
+  list.appendChild(fragment);
+}
+
+let lastSearchKeyword = ""; // untuk hindari race condition antar request
+
+function cariPemain() {
+  const keyword = document
+    .getElementById("searchPlayer")
+    .value
+    .trim()
+    .toLowerCase();
+
+  lastSearchKeyword = keyword;
+
+  if (keyword.length === 0) {
+    renderLeaderboard(leaderboardData);
+    return;
+  }
+
+  // 1. Coba cari di data lokal (top 50) dulu — cepat, tanpa round-trip ke server
+  const filteredLokal = leaderboardData.filter(row =>
+    (row.nama || "").toLowerCase().includes(keyword)
+  );
+
+  if (filteredLokal.length > 0) {
+    renderLeaderboard(filteredLokal);
+    return;
+  }
+
+  // 2. Kalau tidak ketemu di top 50, fallback cari ke server (seluruh data)
+  const list = document.getElementById("leaderboardList");
+  list.innerHTML = "<p style='grid-column:1/-1;text-align:center;color:#999;font-size:14px;padding:20px 0;'>🔎 Mencari di seluruh data...</p>";
+
+  gsRun
+    .withSuccessHandler(function(data) {
+      // pastikan keyword belum berubah saat response datang (user mungkin sudah ketik lagi)
+      if (keyword !== lastSearchKeyword) return;
+
+      if (!data || data.length === 0) {
+        list.innerHTML = "<p style='grid-column:1/-1;text-align:center;color:#999'>Pemain tidak ditemukan</p>";
+        return;
+      }
+
+      // data dari server sudah berbentuk {rank, nama, total}, langsung render
+      renderLeaderboard(data);
+    })
+    .withFailureHandler(function(err) {
+      console.error("❌ Gagal cari pemain di server:", err);
+      if (keyword !== lastSearchKeyword) return;
+      list.innerHTML = "<p style='grid-column:1/-1;text-align:center;color:red'>Gagal mencari pemain.</p>";
+    })
+    .cariPemainLengkap(keyword);
+}
+
+function closeModal() {
+  document.getElementById("modalHallOfFame").style.display = "none";
+}
+
+function closeMedali() {
+  document.getElementById("medaliModal").style.display = "none";
+}
+
+//tombol leaderboad muncul tunggu setelah klik
+function klikLeaderboard(btn){  
+  const teksAwal = btn.innerHTML;
+
+  btn.innerHTML = "⏳ Tunggu...";
+  btn.disabled = true;
+
+  showMedali(() => {
+    btn.innerHTML = teksAwal;
+    btn.disabled = false;
+  });
+}
+</script>    
     <script>
         // Mendaftarkan File Service Worker Resmi
         if ('serviceWorker' in navigator) {
