@@ -14,7 +14,3669 @@
     </style>
 </head>
 <body>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- Html5-Qrcode library -->
+<script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+   <style>
+  
+    .login-btn:active {
+  background-color: #388e3c;
+  transform: scale(0.97);
+}
 
+.cek-btn:active {
+  background-color: #1565C0;
+  transform: scale(0.97);
+}
+
+.close-btn:active {
+  background-color: #555;
+  transform: scale(0.97);
+}
+
+ body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f1f1f1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* Gunakan vh dan fill-available agar tidak ada sisa putih di bawah */
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    .button-group {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .login-btn {
+      background-color: #4CAF50;
+      color: white;
+    }
+
+    .login-btn:hover {
+      background-color: #43a047;
+    }
+
+    .cek-btn {
+      background-color: #2196F3;
+      color: white;
+    }
+
+    .cek-btn:hover {
+      background-color: #1976D2;
+    }
+
+    #bookingModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0,0,0,0.6);
+      /* Menggunakan flex agar konten tepat di tengah */
+      display: none; 
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      padding: 10px; /* Jarak aman agar modal tidak menempel layar HP */
+      box-sizing: border-box;
+    }
+
+    .modal-booking-content {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      width: 100%;           /* Full width di mobile */
+      max-width: 600px;      /* Batas lebar di PC */
+      max-height: 85vh;      /* Tinggi maksimal 85% layar */
+      overflow-y: auto;      /* Scroll vertikal jika konten panjang */
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      box-sizing: border-box;
+      position: relative;
+    }
+
+    /* Pembungkus Tabel agar bisa di-scroll ke samping di HP */
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;      /* Scroll horizontal aktif */
+      -webkit-overflow-scrolling: touch;
+      margin-top: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 400px;      /* Mencegah tabel gepeng di layar sangat kecil */
+    }
+
+    th, td {
+      padding: 10px 8px;
+      border: 1px solid #ddd;
+      text-align: left;
+      font-size: clamp(12px, 3vw, 14px); /* Font menyusut di HP */
+      white-space: nowrap;   /* Mencegah teks tabel berantakan ke bawah */
+    }
+
+    th {
+      background-color: #f8f9fa;
+      position: sticky;      /* Header tetap di atas saat scroll vertikal */
+      top: 0;
+      z-index: 1;
+    }
+
+
+    .close-btn {
+      margin-top: 12px;
+      background-color: #888;
+      color: white;
+    }
+
+    .close-btn:hover {
+      background-color: #666;
+    }
+    .loader-container {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(255,255,255,0.8);
+  z-index: 10000;
+}
+
+.loader-spinner {
+  border: 8px solid #f3f3f3;
+  border-top: 8px solid #4CAF50;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.countdown {
+  display: inline-block;
+  animation: pulse 1s ease infinite;
+  font-weight: bold;
+}
+
+  .icon-kartu:hover{
+    transform: scale(1.2);
+  }
+
+.flash-update {
+  animation: flash 0.5s ease;
+}
+
+@keyframes flash {
+  0%   { transform: scale(1); color: #fff; }
+  50%  { transform: scale(1.2); color: #00ffcc; }
+  100% { transform: scale(1); color: #fff; }
+}
+
+#btnKirim:disabled {
+  background-color: #95a5a6 !important; /* Warna abu-abu saat loading */
+  opacity: 0.7 !important;
+  cursor: not-allowed !important;
+  transform: none !important; /* Menghilangkan efek hover scale jika ada */
+}
+
+  .btnNominal {
+    background:#f5f6fa;
+    border:1px solid #dcdde1;
+    border-radius:8px;
+    padding:10px;
+    font-size:13px;
+    cursor:pointer;
+    transition:all 0.2s ease;
+  }
+  .btnNominal:hover {
+    background:#3498db;
+    color:#fff;
+    border-color:#3498db;
+  }
+
+  .btnAksi {
+    background-color: #2ecc71;
+    color: white;
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btnAksi.locked {
+    background-color: #bdc3c7 !important;
+    color: #7f8c8d !important;
+    cursor: not-allowed !important;
+    opacity: 0.7;
+    pointer-events: none; /* 🔥 kunci total klik */
+  }
+
+  .btnAksi.locked .label::after {
+    content: " 🔒";
+  }
+
+  .btnAksi.locked:hover {
+    background-color: #bdc3c7 !important;
+    transform: none !important;
+  }
+
+.rainbow-btn{
+
+  flex:1;
+  padding:12px;
+  font-size:16px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  color:white;
+  font-weight:bold;
+
+  background:linear-gradient(
+    270deg,
+    #ff0000,
+    #ff9900,
+    #ffee00,
+    #33cc33,
+    #0099ff,
+    #6633ff,
+    #ff00cc,
+    #ff0000
+  );
+
+  background-size:1600% 1600%;
+
+  animation:rainbowMove 8s ease infinite;
+
+  box-shadow:
+    0 0 10px rgba(255,255,255,0.2),
+    0 0 20px rgba(255,255,255,0.15);
+
+  transition:
+    transform .15s ease,
+    filter .3s ease;
+
+}
+
+.rainbow-btn:hover{
+
+  transform:scale(1.03);
+
+  filter:brightness(1.1);
+
+}
+
+.rainbow-btn:active{
+
+  transform:scale(0.96);
+
+}
+
+@keyframes rainbowMove{
+
+  0%{
+    background-position:0% 50%;
+  }
+
+  50%{
+    background-position:100% 50%;
+  }
+
+  100%{
+    background-position:0% 50%;
+  }
+
+}
+
+/* 1. RESET DASAR */
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  min-height: 100vh !important;
+  min-height: -webkit-fill-available !important;
+  /* Menggunakan flex agar konten Login bisa otomatis ke tengah */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Vertikal center */
+  align-items: center;     /* Horizontal center */
+  background-color: #f1f1f1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  position: relative;
+  touch-action: manipulation;
+}
+
+/* 2. GAYA DASAR CONTAINER (LOGIN & DASHBOARD) */
+.container, .container-dashboard {
+  width: 90%;
+  max-width: 450px; /* Ukuran ideal PC */
+  background: #ffffff;
+  padding: 28px;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  box-sizing: border-box;
+  animation: fadeIn 0.4s ease-out;
+  position: relative;
+  /* Jangan pasang margin manual agar Flexbox body tetap akurat */
+}
+
+/* 3. KHUSUS DASHBOARD */
+/* Karena dashboard biasanya panjang, kita hilangkan justify-center pada body */
+/* Jika ID dashboard aktif (display != none), container akan punya margin top */
+.container-dashboard {
+  margin: 40px auto !important; /* Jarak aman agar Icon Raja (👑) tidak terpotong */
+  display: block;
+}
+
+/* 4. PENYESUAIAN MOBILE */
+@media screen and (max-width: 600px) {
+  body {
+    /* Memberi ruang di HP agar tidak mepet status bar browser */
+    padding: 20px 0 !important;
+    /* Jika konten sangat panjang, pastikan start dari atas, bukan tengah */
+    justify-content: flex-start; 
+  }
+
+  .container, .container-dashboard {
+    width: 88%;
+    padding: 22px;
+    border-radius: 18px;
+  }
+}
+
+/* 5. ANIMASI */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+
+</style>
+
+  <!-- Loader saat proses login -->
+  <div id="loader" class="loader-container" style="display: none;">
+    <div class="loader-spinner"></div>
+    <p style="margin-top: 10px; font-weight: bold;">Sedang Diproses...</p>
+  </div>
+
+<!-- Form Login -->
+<div class="container" id="loginDiv" style="max-width: 400px; margin: auto; padding: 20px; box-sizing: border-box;">
+  
+  <!-- Bagian Header & Ikon Atas -->
+  <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 15px; width: 100%;">
+    <!-- Tombol Leaderboard -->
+    <button id="openLeaderboardBtn" 
+          title="Tampilkan Leaderboard" 
+          aria-label="Tampilkan Leaderboard"
+          style="
+              background: none; 
+              border: none; 
+              cursor: pointer; 
+              font-size: 24px; 
+              line-height: 1;
+              padding: 0; 
+              margin: 0;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              width: 40px !important;
+              height: 40px !important;
+              flex: none !important;
+              box-sizing: border-box;
+          ">
+      🏆 
+    </button>
+  </div>
+
+  <!-- Judul dengan Icon Kamera -->
+  <h2 style="text-align: center; font-family: sans-serif; margin-bottom: 20px; color: #333;">
+    Login Pemain
+    <span id="openBarcodeIcon" style="cursor:pointer; font-size:22px; color:#27ae60; margin-left: 5px;" title="Scan Barcode">
+      📷
+    </span>
+  </h2>
+
+  <!-- Login dengan Nama + PIN -->
+  <div id="loginNormal" style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+    
+    <!-- Input Nama & PIN (Gaya Desain Modern & Responsif) -->
+    <input type="text" id="nama" placeholder="Nama" class="form-input" 
+           style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+    
+    <input type="password" id="pin" placeholder="PIN" class="form-input" 
+           style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+
+    <!-- Group Tombol yang Otomatis Menyesuaikan Layar HP -->
+    <div class="button-group" style="display: flex; gap: 10px; width: 100%; margin-top: 5px; box-sizing: border-box;">
+      
+      <!-- Tombol Login -->
+      <button class="login-btn" onclick="login()" 
+              style="
+                  flex: 1; 
+                  padding: 12px 5px; 
+                  font-size: 15px; 
+                  font-weight: bold; 
+                  color: white; 
+                  background-color: #2980b9; 
+                  border: none; 
+                  border-radius: 8px; 
+                  cursor: pointer; 
+                  display: inline-flex; 
+                  align-items: center; 
+                  justify-content: center; 
+                  gap: 5px;
+                  box-sizing: border-box;
+                  min-width: 0; /* Mencegah teks meluap/terpotong di HP sempit */
+              ">
+        🔐 Login
+      </button>
+      
+      <!-- Tombol Cek Booking -->
+      <button class="cek-btn" onclick="cekBooking()" 
+              style="
+                  flex: 1; 
+                  padding: 12px 5px; 
+                  font-size: 15px; 
+                  font-weight: bold; 
+                  color: white; 
+                  background-color: #27ae60; 
+                  border: none; 
+                  border-radius: 8px; 
+                  cursor: pointer; 
+                  display: inline-flex; 
+                  align-items: center; 
+                  justify-content: center; 
+                  gap: 5px;
+                  box-sizing: border-box;
+                  min-width: 0; /* Mencegah teks meluap/terpotong di HP sempit */
+              ">
+        📅 Cek Booking
+      </button>
+
+    </div>
+  </div>
+
+
+<!-- Login dengan Barcode (default hidden) -->
+<div id="loginBarcode" style="margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px; display:none;">
+  <div style="display:flex; align-items:center; justify-content:center; gap:10px;">
+  <h3 style="margin:0; font-size:16px; color:#27ae60;">Scan Barcode</h3>
+  <button id="toggleCamera" title="Toggle Kamera" style="
+  background-color:red;
+  border:none;
+  border-radius:50%;
+  width:24px;
+  height:24px;
+  padding:0;
+  margin:0;
+  cursor:pointer;
+  font-size:14px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  line-height:1;
+  color:white;
+  min-width:0;
+  min-height:0;
+  flex-shrink:0;
+">🔴</button>
+  </div>
+  <input type="password" id="barcode" placeholder="Scan Barcode Kartu" class="form-input" readonly>
+
+  <div class="button-group" style="display: flex; gap: 10px; margin-top: 10px;">
+    <button class="login-btn" onclick="startLoginBarcode()" style="flex: 1;">
+      📷 Login Barcode
+    </button>
+    <button class="back-btn" id="backToNormal" style="flex: 1; background:#bdc3c7; color:#fff; border:none; border-radius:6px; cursor:pointer;">
+      🔙 Kembali
+    </button>
+  </div>
+
+  <div id="qr-reader" style="width: 100%; margin-top: 15px;"></div>
+</div>
+
+  <!-- Tombol Daftar -->
+  <div style="text-align: center; margin-top: 15px;">
+    <button onclick="tampilkanDaftar()" 
+            style="padding: 10px 20px; width: 100%; box-sizing: border-box;">
+      📝 Daftar Akun
+    </button>
+  </div>
+
+  <p id="loginStatus" style="color: red; font-weight: bold; margin-top: 10px; text-align:center;"></p>
+  <div id="loader" style="display:none; text-align:center; margin-top:10px;">Loading...</div>
+</div>
+
+<!-- Modal Juara Leaderboard -->
+<div id="leaderboardModal" style="
+  display:none; 
+  position:fixed; 
+  top:0; left:0; width:100%; height:100%; 
+  background:rgba(0,0,0,0.7); 
+  justify-content:center; align-items:center; 
+  z-index:5000;
+  box-sizing: border-box;
+  padding: 10px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+
+  <div id="leaderboardContent" style="
+    background:#1e1e2f; 
+    color:#f0f0f0; 
+    padding:20px; 
+    border-radius:14px; 
+    max-width:420px; 
+    width:95%;
+    max-height:85vh; 
+    overflow-y:auto; 
+    overflow-x:hidden;
+    box-shadow:0 0 15px #00ffccaa; 
+    position:relative;
+    box-sizing: border-box;">
+    
+    <button id="closeLeaderboardBtn" onclick="document.getElementById('leaderboardModal').style.display='none'" aria-label="Tutup Leaderboard" style="
+      position:absolute; top:12px; right:12px; 
+      background:none; border:none; font-size:20px; cursor:pointer; color: #ff4d4d; padding: 0;">✖️</button>
+    
+    <h2 id="modalTitle" style="text-align:center; margin:0; font-size: max(16px, 1.6vw); color:#00ffcc; padding-right: 20px; word-break: break-word;">Leaderboard Gelar Juara</h2>
+
+    <!-- Tombol untuk lihat penjelasan gelar -->
+    <div style="text-align:center; margin: 12px 0;">
+      <button id="lihatPenjelasanBtn" style="
+        padding:8px 14px; 
+        font-size:12px; 
+        background:#00ffcc; 
+        color:#000; 
+        border:none; 
+        border-radius:8px; 
+        cursor:pointer; 
+        font-weight:bold; 
+        box-shadow: 0 0 8px #00ffcc;
+        transition: 0.2s;"
+        onmouseover="this.style.opacity='0.8'" 
+        onmouseout="this.style.opacity='1'">
+        📜 Lihat Fungsi Gelar Juara
+      </button>
+    </div>
+
+    <!-- TABEL HASIL: Menggunakan struktur Flexbox modern agar elastis -->
+    <div style="width:100%; box-sizing:border-box; border: 1px solid #444; border-radius: 6px; overflow: hidden;">
+      
+      <!-- Baris Header (Pengganti <thead>) -->
+      <div id="headerRow" style="display: flex; background:#dfeffc; color:#000; font-weight: bold; font-size: 13px; padding: 8px 4px; width: 100%; box-sizing: border-box;">
+        <!-- Akan diisi otomatis lewat JS agar sinkron -->
+      </div>
+      
+      <!-- Kontainer Utama Data (Pengganti <tbody>) -->
+      <div id="tableBody" style="display: flex; flex-direction: column; width: 100%;">
+        <!-- Baris hasil diisi lewat JavaScript -->
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<div id="penjelasanModal" class="penjelasan-modal" role="dialog" aria-modal="true" aria-labelledby="penjelasanTitle" aria-hidden="true" style="box-sizing: border-box; padding: 10px;">
+  <!-- PEMBUNGKUS UTAMA: Dibuat responsif dan estetik ala gamer style -->
+  <div class="penjelasan-dialog" role="document" tabindex="-1" aria-describedby="penjelasanDesc" style="
+    background:#1e1e2f; 
+    color:#f0f0f0; 
+    padding:20px; 
+    border-radius:14px; 
+    max-width:420px; 
+    width:95%; 
+    box-sizing:border-box; 
+    max-height:85vh; 
+    overflow-y:auto; 
+    overflow-x:hidden; 
+    position:relative; 
+    box-shadow:0 0 15px #00ffccaa;
+    margin: 0 auto;">
+    
+    <button id="tutupPenjelasanBtn" class="penjelasan-close" aria-label="Tutup penjelasan" style="
+      position:absolute; top:12px; right:12px; 
+      background:none; border:none; font-size:20px; cursor:pointer; color: #ff4d4d; padding: 0;">✖</button>
+
+    <h3 id="penjelasanTitle" style="text-align:center; margin-top:0; color:#00ffcc; font-size: max(16px, 1.6vw);">📜 Penjelasan Gelar Mingguan</h3>
+
+    <div id="penjelasanDesc" class="penjelasan-content" style="width:100%; box-sizing:border-box; margin-top: 15px;">
+      
+      <!-- STRUKTUR TABEL FLEXBOX RESPONSIF -->
+      <div style="width:100%; box-sizing:border-box; border: 1px solid #444; border-radius: 6px; overflow: hidden; margin-bottom: 15px;">
+        
+        <!-- Baris Header (Pengganti <thead>) -->
+        <div style="display: flex; background:#dfeffc; color:#000; font-weight: bold; font-size: 12px; padding: 8px 4px; width: 100%; box-sizing: border-box;">
+          <div style="flex: 0.8; text-align: center;">Simbol</div>
+          <div style="flex: 1.8; text-align: left; padding-left: 4px;">Gelar</div>
+          <div style="flex: 3.4; text-align: left;">Syarat Per Minggu</div>
+        </div>
+        
+        <!-- Kontainer Isi (Pengganti <tbody>) -->
+        <div style="display: flex; flex-direction: column; width: 100%;">
+          
+          <!-- Baris 1 -->
+          <div style="display: flex; align-items: center; padding: 8px 4px; font-size: 12px; border-bottom: 1px solid #3c3c4e; width: 100%; box-sizing: border-box;">
+            <div style="flex: 0.8; text-align: center; font-size: 14px;">👑</div>
+            <div style="flex: 1.8; word-break: break-word; padding-left: 4px; font-weight: bold; color: #00ffcc;">Raja Petarung</div>
+            <div style="flex: 3.4; word-break: break-word; color: #fff;">Menang ≥ 10 kali</div>
+          </div>
+
+          <!-- Baris 2 -->
+          <div style="display: flex; align-items: center; padding: 8px 4px; font-size: 12px; border-bottom: 1px solid #3c3c4e; width: 100%; box-sizing: border-box;">
+            <div style="flex: 0.8; text-align: center; font-size: 14px;">⚔️</div>
+            <div style="flex: 1.8; word-break: break-word; padding-left: 4px; font-weight: bold; color: #00ffcc;">Pejuang Tangguh</div>
+            <div style="flex: 3.4; word-break: break-word; color: #fff;">Menang 5–9 kali</div>
+          </div>
+
+          <!-- Baris 3 -->
+          <div style="display: flex; align-items: center; padding: 8px 4px; font-size: 12px; border-bottom: 1px solid #3c3c4e; width: 100%; box-sizing: border-box;">
+            <div style="flex: 0.8; text-align: center; font-size: 14px;">💥</div>
+            <div style="flex: 1.8; word-break: break-word; padding-left: 4px; font-weight: bold; color: #00ffcc;">Penantang Hebat</div>
+            <div style="flex: 3.4; word-break: break-word; color: #fff;">Menang ≥ 2 kali</div>
+          </div>
+
+          <!-- Baris 4 -->
+          <div style="display: flex; align-items: center; padding: 8px 4px; font-size: 12px; border-bottom: 1px solid #3c3c4e; width: 100%; box-sizing: border-box;">
+            <div style="flex: 0.8; text-align: center; font-size: 14px;">🛡️</div>
+            <div style="flex: 1.8; word-break: break-word; padding-left: 4px; font-weight: bold; color: #00ffcc;">Sang Pengabdi</div>
+            <div style="flex: 3.4; word-break: break-word; color: #fff;">Total durasi main ≥ 100 menit</div>
+          </div>
+
+          <!-- Baris 5 -->
+          <div style="display: flex; align-items: center; padding: 8px 4px; font-size: 12px; border-bottom: 1px solid #3c3c4e; width: 100%; box-sizing: border-box;">
+            <div style="flex: 0.8; text-align: center; font-size: 14px;">✨</div>
+            <div style="flex: 1.8; word-break: break-word; padding-left: 4px; font-weight: bold; color: #00ffcc;">Sang Bintang</div>
+            <div style="flex: 3.4; word-break: break-word; color: #fff;">Skor terbaik ≥ 8</div>
+          </div>
+
+          <!-- Baris 6 -->
+          <div style="display: flex; align-items: center; padding: 8px 4px; font-size: 12px; border-bottom: 1px solid #3c3c4e; width: 100%; box-sizing: border-box;">
+            <div style="flex: 0.8; text-align: center; font-size: 14px;">🎩</div>
+            <div style="flex: 1.8; word-break: break-word; padding-left: 4px; font-weight: bold; color: #00ffcc;">The Gentleman</div>
+            <div style="flex: 3.4; word-break: break-word; color: #fff;">Seri ≥ 3 kali</div>
+          </div>
+
+          <!-- Baris 7 -->
+          <div style="display: flex; align-items: center; padding: 8px 4px; font-size: 12px; border-bottom: 1px solid #3c3c4e; width: 100%; box-sizing: border-box;">
+            <div style="flex: 0.8; text-align: center; font-size: 14px;">🧠</div>
+            <div style="flex: 1.8; word-break: break-word; padding-left: 4px; font-weight: bold; color: #00ffcc;">Otak Jenius</div>
+            <div style="flex: 3.4; word-break: break-word; color: #fff;">Catatan: "best strategy"</div>
+          </div>
+
+          <!-- Baris 8 -->
+          <div style="display: flex; align-items: center; padding: 8px 4px; font-size: 12px; border-bottom: 1px solid #3c3c4e; width: 100%; box-sizing: border-box;">
+            <div style="flex: 0.8; text-align: center; font-size: 14px;">🎯</div>
+            <div style="flex: 1.8; word-break: break-word; padding-left: 4px; font-weight: bold; color: #00ffcc;">Si Penembak Jitu</div>
+            <div style="flex: 3.4; word-break: break-word; color: #fff;">Catatan: "top scorer"</div>
+          </div>
+
+          <!-- Baris 9 -->
+          <div style="display: flex; align-items: center; padding: 8px 4px; font-size: 12px; width: 100%; box-sizing: border-box;">
+            <div style="flex: 0.8; text-align: center; font-size: 14px;">🗡️</div>
+            <div style="flex: 1.8; word-break: break-word; padding-left: 4px; font-weight: bold; color: #00ffcc;">Sang Penantang</div>
+            <div style="flex: 3.4; word-break: break-word; color: #fff;">Default (tidak memenuhi kriteria lain)</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Bagian Catatan Penting -->
+      <div class="small-note" style="font-size: 11px; color: #f0f0f0; background: #2c2c3e; padding: 10px; border-radius: 8px; border-left: 3px solid #00ffcc; margin-top: 15px;">
+        <strong style="color: #00ffcc;">⚠️ Catatan penting:</strong>
+        <ul style="margin:6px 0 0 16px; padding: 0; color:#9fb6c9; list-style-type: square;">
+          <li style="margin-bottom: 4px;">Data diambil dari <em>Sheet Lomba</em> (hasil & skor) dan <em>Sheet Booking</em> (durasi sesi).</li>
+          <li style="margin-bottom: 4px;"><strong>Prioritas pemberian gelar:</strong> pengecekan dilakukan <em>dari atas ke bawah</em>. Bila satu pemain memenuhi beberapa syarat, gelar pertama yang terpenuhi yang akan diberikan oleh sistem.</li>
+          <li>Semua hasil bersifat otomatis berdasarkan data statistik mingguan.</li>
+        </ul>
+      </div>
+
+      <!-- Tombol Tutup Bawah -->
+      <div style="text-align:center; margin-top:16px;">
+        <button id="tutupPenjelasanBtn2" style="padding:10px 24px; border-radius:8px; background:#00ffcc; color:#000; border:none; cursor:pointer; font-weight:bold; box-shadow: 0 0 8px #00ffcc; transition: 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  #daftarDiv {
+    max-width: 420px;
+    margin: 40px auto;
+    padding: 28px 24px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+
+  #daftarDiv h2 {
+    text-align: center;
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 4px;
+  }
+
+  #daftarDiv .subtitle {
+    text-align: center;
+    font-size: 13px;
+    color: #6b7280;
+    margin: 0 0 22px;
+  }
+
+  #daftarDiv .field-group {
+    margin-bottom: 16px;
+  }
+
+  #daftarDiv .form-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    font-size: 15px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    background: #f9fafb;
+    color: #111827;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  #daftarDiv .form-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    background: #ffffff;
+  }
+
+  #daftarDiv .hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.4;
+  }
+
+  #daftarDiv .field-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+  }
+
+  #daftarDiv .rekomendasi-box {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 18px;
+  }
+
+  #daftarDiv .rekomendasi-box .hint {
+    color: #1e40af;
+  }
+
+  #daftarDiv .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  #daftarDiv .btn {
+    flex: 1;
+    padding: 13px 10px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.05s ease;
+  }
+
+  #daftarDiv .btn:active {
+    transform: scale(0.98);
+  }
+
+  #daftarDiv .btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+  }
+
+  #daftarDiv .btn-primary {
+    background: #2563eb;
+    color: #ffffff;
+  }
+
+  #daftarDiv .btn-primary:hover {
+    opacity: 0.92;
+  }
+
+  #daftarStatus {
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    margin-top: 14px;
+    min-height: 18px;
+  }
+
+  /* Mobile: layar kecil */
+  @media (max-width: 420px) {
+    #daftarDiv {
+      max-width: 100%;
+      margin: 0;
+      border-radius: 0;
+      min-height: 100vh;
+      padding: 24px 18px;
+      box-shadow: none;
+    }
+  }
+</style>
+
+<!-- Form Daftar (disembunyikan di awal) -->
+<div id="daftarDiv" style="display:none;">
+  <h2>Daftar Akun Baru</h2>
+  <p class="subtitle">Lengkapi data di bawah untuk membuat akun</p>
+
+  <div class="field-group">
+    <input type="text" id="unikDaftar" placeholder="Nama Panggilan" class="form-input">
+    <small class="hint">Boleh huruf besar/kecil dan angka (contoh: D4v1d)</small>
+  </div>
+
+  <div class="field-group">
+    <input type="text" id="namaDaftar" placeholder="Nama Lengkap" class="form-input">
+  </div>
+
+  <div class="field-group">
+    <span class="field-label">Tanggal Lahir</span>
+    <input type="date" id="tanggalDaftar" class="form-input">
+  </div>
+
+  <div class="field-group">
+    <input type="password" id="pinDaftar" placeholder="Buat PIN" class="form-input">
+  </div>
+
+  <div class="rekomendasi-box">
+    <input type="text" id="rekomendasiDaftar" placeholder="Nama Member yang Merekomendasikan" class="form-input">
+    <small class="hint">Wajib diisi nama member aktif yang mengenal Anda. Akun baru akan aktif setelah disetujui.</small>
+  </div>
+
+  <div class="btn-row">
+    <button type="button" onclick="batalDaftar()" class="btn btn-secondary">↩️ Kembali</button>
+    <button type="button" onclick="daftarAkun()" class="btn btn-primary">✅ Buat Akun</button>
+  </div>
+
+  <p id="daftarStatus"></p>
+</div>
+
+<!-- Modal Booking -->
+<style>
+  @keyframes fadeInOverlay {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: translateY(16px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  #bookingModal {
+    animation: fadeInOverlay 0.2s ease-out;
+    backdrop-filter: blur(3px);
+  }
+  #bookingModal .modal-booking-content {
+    animation: popIn 0.25s cubic-bezier(.2,.8,.2,1);
+  }
+  #bookingModal .modal-booking-content::-webkit-scrollbar {
+    width: 6px;
+  }
+  #bookingModal .modal-booking-content::-webkit-scrollbar-thumb {
+    background: #00ffcc55;
+    border-radius: 10px;
+  }
+  #bookingModal .close-btn {
+    transition: transform 0.15s ease, color 0.15s ease;
+  }
+  #bookingModal .close-btn:hover {
+    transform: scale(1.15) rotate(90deg);
+    color: #ff6b6b;
+  }
+  #bookingModal .btn-tutup {
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  }
+  #bookingModal .btn-tutup:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 14px #00ffcc;
+    opacity: 0.9;
+  }
+  #bookingModal .btn-tutup:active {
+    transform: translateY(0);
+  }
+</style>
+
+<div id="bookingModal" style="
+  display: none;
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(8,8,16,0.75);
+  justify-content: center; align-items: center;
+  z-index: 5000;
+  box-sizing: border-box;
+  padding: 10px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+
+  <div class="modal-booking-content" style="
+    background: linear-gradient(160deg, #1e1e2f 0%, #181826 100%);
+    color: #f0f0f0;
+    padding: 22px 20px;
+    border-radius: 18px;
+    max-width: 420px;
+    width: 95%;
+    max-height: 85vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-shadow: 0 0 25px #00ffcc44, 0 8px 30px rgba(0,0,0,0.5);
+    border: 1px solid rgba(0,255,204,0.15);
+    position: relative;
+    box-sizing: border-box;">
+
+    <button class="close-btn" onclick="tutupModal()" aria-label="Tutup Booking" style="
+      position: absolute; top: 14px; right: 14px;
+      background: rgba(255,255,255,0.06); border: none; border-radius: 50%;
+      width: 28px; height: 28px;
+      font-size: 14px; cursor: pointer; color: #ff8080; padding: 0;
+      display: flex; align-items: center; justify-content: center;">✖</button>
+
+    <h3 style="
+      text-align: center;
+      margin: 0 0 4px 0;
+      color: #00ffcc;
+      font-size: max(17px, 1.6vw);
+      letter-spacing: 0.3px;
+      text-shadow: 0 0 12px #00ffcc55;">
+      🎮 Daftar Sesi Booking
+    </h3>
+    <p style="text-align:center; margin: 0 0 14px 0; font-size: 11px; color: #888;">
+      Pantau sesi yang sedang berjalan & yang akan datang
+    </p>
+
+    <!-- BANNER NOTIFIKASI -->
+    <a href="https://komunitasbooking.github.io/repo/" target="_blank" rel="noopener" style="
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      background: rgba(0,255,204,0.08);
+      border: 1px solid rgba(0,255,204,0.25);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      transition: background 0.15s ease, transform 0.15s ease;"
+      onmouseover="this.style.background='rgba(0,255,204,0.14)'; this.style.transform='translateY(-1px)'"
+      onmouseout="this.style.background='rgba(0,255,204,0.08)'; this.style.transform='translateY(0)'">
+      <div style="
+        font-size: 18px;
+        background: rgba(0,255,204,0.15);
+        border-radius: 50%;
+        width: 32px; height: 32px;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;">🔔</div>
+      <div style="flex:1;">
+        <div style="color:#00ffcc; font-weight:bold; font-size:12.5px;">Aktifkan Notifikasi Pengingat</div>
+        <div style="color:#9aa0a6; font-size:10.5px; margin-top:1px;">Tetap dapat alert walau aplikasi ditutup</div>
+      </div>
+      <div style="color:#00ffcc; font-size:14px;">›</div>
+    </a>
+
+    <!-- KONTAINER UTAMA KARTU (Pengganti elemen table kaku) -->
+    <!-- ID 'bookingList' dipasang di sini agar disuntik data baris flex oleh JS -->
+    <div id="bookingList" style="display: flex; flex-direction: column; gap: 8px; width: 100%; box-sizing: border-box;">
+      <!-- Baris data booking berbentuk kartu flex akan diisi lewat JavaScript -->
+    </div>
+
+    <div style="text-align: center; margin-top: 18px;">
+      <button class="btn-tutup" onclick="tutupModal()" style="
+        padding: 10px 28px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #00ffcc, #00d4b0);
+        color: #0a0a14;
+        border: none;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.3px;
+        box-shadow: 0 0 10px #00ffcc77;">
+        Tutup
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+   DASHBOARD MODERN - Ganti seluruh <div id="dashboard"> 
+   ===================================================== -->
+
+<div id="dashboard" style="display: none;">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+/* ===== RESET & VARIABLES ===== */
+#dashboard * { box-sizing: border-box; }
+#dashboard {
+  --brand: #0066FF;
+  --brand-light: #EBF2FF;
+  --brand-dark: #0047B3;
+  --success: #00C48C;
+  --warning: #FF8C42;
+  --surface: #F7F9FC;
+  --card: #FFFFFF;
+  --border: rgba(0,0,0,0.08);
+  --text-primary: #0D1117;
+  --text-secondary: #6B7280;
+  --text-hint: #9CA3AF;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+  background: var(--surface);
+  min-height: 100vh;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Paksa body tidak punya celah saat dashboard aktif */
+body:has(#dashboard[style*="block"]),
+body:has(.container-dashboard) {
+  padding: 0 !important;
+  margin: 0 !important;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== TOP HEADER BAR ===== */
+.db-top-bar {
+  background: linear-gradient(135deg, #0057F7 0%, #003FBB 100%);
+  padding: env(safe-area-inset-top, 0px) 20px 56px;
+  padding-top: max(env(safe-area-inset-top, 0px), 22px);
+  border-radius: 0 0 28px 28px;
+  position: relative;
+  overflow: hidden;
+  margin-top: -1px;
+}
+.db-top-bar::before {
+  content:''; position:absolute; top:-40px; right:-40px;
+  width:160px; height:160px;
+  background: rgba(255,255,255,0.07); border-radius:50%;
+}
+.db-top-bar::after {
+  content:''; position:absolute; bottom:-60px; left:-30px;
+  width:200px; height:200px;
+  background: rgba(255,255,255,0.05); border-radius:50%;
+}
+.db-top-inner { position:relative; z-index:2; text-align:center; }
+.db-top-label {
+  font-size:12px; color:rgba(255,255,255,0.7);
+  font-weight:500; letter-spacing:0.05em;
+  text-transform:uppercase; margin-bottom:4px;
+}
+.db-top-name { font-size:22px; font-weight:700; color:#fff; }
+.db-top-gelar { font-size:11px; color:rgba(255,255,255,0.75); margin-top:-20px; }
+
+/* Balance & Sisa strip */
+.db-balance-row {
+  display:flex; gap:8px; flex-wrap:wrap;
+  margin-top:12px; align-items:center;
+  justify-content:center;
+}
+.db-chip {
+  display:inline-flex; align-items:center; gap:6px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius:20px; padding:7px 14px;
+  font-size:13px; color:#fff;
+  backdrop-filter:blur(4px);
+  white-space:nowrap;
+}
+.db-chip .dot { width:7px; height:7px; background:#00E5A0; border-radius:50%; flex-shrink:0; }
+.db-chip-warn { background:rgba(255,213,0,0.18); border-color:rgba(255,213,0,0.3); }
+.db-chip-warn .dot { background:#FFD500; }
+
+/* Update data link */
+.db-update-link {
+  font-size:12px; color:rgba(255,255,255,0.75);
+  text-decoration:underline; cursor:pointer;
+  background:none; border:none; font-family:inherit;
+  margin-top:8px; display:block; text-align:center; width:100%;
+}
+
+/* ===== CONTENT WRAP (overlaps header) ===== */
+.db-content {
+  margin-top:-28px;
+  padding: 0 16px 32px;
+  position:relative; z-index:10;
+}
+
+/* ===== QUICK ACTION CARDS ===== */
+.db-qa-card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  padding: 14px 8px 10px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  margin-bottom:10px;
+}
+.db-qa-grid {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:4px;
+}
+.db-qa-item {
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  cursor:pointer; border-radius:var(--radius-sm);
+  padding:8px 4px; transition:background 0.15s;
+  border:none; background:transparent;
+}
+.db-qa-item:active { background: var(--brand-light); }
+.db-qa-icon {
+  width:44px; height:44px;
+  border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px;
+}
+.db-qa-label {
+  font-size:11px; font-weight:600; color:var(--text-secondary);
+  text-align:center; line-height:1.2;
+}
+
+/* ===== SECTION LABEL ===== */
+.db-section-label {
+  font-size:12px; font-weight:700; color:var(--text-hint);
+  letter-spacing:0.06em; text-transform:uppercase;
+  margin: 18px 0 10px;
+}
+
+/* ===== FORM CARD ===== */
+.db-form-card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+  margin-bottom:12px;
+}
+
+/* Input styles */
+.db-input-row { margin-bottom:14px; }
+.db-input-label {
+  font-size:11px; font-weight:700; color:var(--text-hint);
+  letter-spacing:0.05em; text-transform:uppercase;
+  margin-bottom:6px; display:block;
+}
+.db-input {
+  width:100%;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius:12px;
+  padding:13px 16px;
+  font-family: 'Plus Jakarta Sans','Segoe UI',sans-serif;
+  font-size:15px; font-weight:500;
+  color: var(--text-primary);
+  outline:none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  appearance:none; -webkit-appearance:none;
+}
+.db-input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 4px rgba(0,102,255,0.1);
+  background:#fff;
+}
+.db-input-icon-wrap { position:relative; }
+.db-input-icon-wrap .db-input { padding-left:46px; }
+.db-input-icon-wrap .db-icon-left {
+  position:absolute; left:14px; top:50%; transform:translateY(-50%);
+  color:var(--text-hint); pointer-events:none; font-size:17px;
+}
+.db-two-col { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+/* Type selector */
+.db-type-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:8px;
+}
+.db-type-option {
+  border: 1.5px solid var(--border);
+  border-radius:12px; padding:11px 12px;
+  cursor:pointer; background:var(--surface);
+  transition:all 0.15s; text-align:left;
+}
+.db-type-option.active {
+  border-color:var(--brand); background:var(--brand-light);
+}
+.db-type-option .te { font-size:18px; display:block; margin-bottom:3px; }
+.db-type-option .tn { font-size:13px; font-weight:700; color:var(--text-primary); }
+.db-type-option.active .tn { color:var(--brand); }
+.db-type-option .td { font-size:11px; color:var(--text-hint); margin-top:1px; }
+.db-type-option.active .td { color:var(--brand); opacity:0.7; }
+
+/* Select arrow */
+select.db-input {
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 14px center;
+  padding-right:40px;
+}
+
+/* ===== BUTTONS ===== */
+.db-submit-btn {
+  width:100%; padding:16px;
+  background: linear-gradient(135deg, #0066FF, #0047B3);
+  color:#fff; border:none; border-radius:var(--radius-md);
+  font-family:'Plus Jakarta Sans','Segoe UI',sans-serif;
+  font-size:16px; font-weight:700;
+  cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  box-shadow:0 8px 24px rgba(0,102,255,0.35);
+  transition: transform 0.15s, box-shadow 0.15s;
+  letter-spacing:0.01em;
+}
+.db-submit-btn:active {
+  transform:scale(0.98);
+  box-shadow:0 4px 12px rgba(0,102,255,0.3);
+}
+.db-logout-row { display:flex; gap:10px; margin-top:10px; }
+.db-btn-secondary {
+  flex:1; padding:14px;
+  background:var(--card); border:1.5px solid var(--border);
+  border-radius:var(--radius-md);
+  font-family:'Plus Jakarta Sans','Segoe UI',sans-serif;
+  font-size:14px; font-weight:600; color:var(--text-secondary);
+  cursor:pointer; transition:all 0.15s; display:flex;
+  align-items:center; justify-content:center; gap:6px;
+}
+.db-btn-secondary:active { background:var(--surface); }
+.db-btn-chat {
+  flex:1.4; padding:14px;
+  background:linear-gradient(135deg, #7B2FFF, #5500DD);
+  border:none; border-radius:var(--radius-md);
+  font-family:'Plus Jakarta Sans','Segoe UI',sans-serif;
+  font-size:14px; font-weight:700; color:#fff;
+  cursor:pointer;
+  box-shadow:0 6px 18px rgba(123,47,255,0.3);
+  transition:transform 0.15s;
+}
+.db-btn-chat:active { transform:scale(0.97); }
+
+/* ===== HOF / ICONS strip ===== */
+.db-hof-strip {
+  display:flex; justify-content:center; gap:20px;
+  padding:12px 0 4px; align-items:center;
+}
+.db-hof-strip a, .db-hof-strip span {
+  font-size:22px; cursor:pointer; text-decoration:none;
+  transition:transform 0.15s;
+}
+.db-hof-strip a:hover, .db-hof-strip span:hover { transform:scale(1.2); }
+</style>
+
+<!-- HEADER BLUE -->
+<div class="db-top-bar">
+  <div class="db-top-inner">
+      <p class="db-top-name">Selamat Datang, <span id="namaPemain"></span>!</p>
+    <p class="db-top-gelar"><span id="gelarPemainSpecialis">Memuat gelar...</span></p>
+    <div class="db-balance-row">
+      <span class="db-chip">
+        <span class="dot"></span>
+        Saldo: <strong id="saldoPemain">0</strong>
+        <button onclick="openModalTopUp()" style="
+          background:rgba(255,255,255,0.25); border:none; color:#fff;
+          border-radius:10px; padding:2px 8px; font-size:11px;
+          font-weight:700; cursor:pointer; font-family:inherit; margin-left:2px;
+        ">+ Top Up</button>
+      </span>
+      <span class="db-chip db-chip-warn">
+        <span class="dot"></span>
+        Sisa: <strong id="waktuBooking"></strong>
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="db-content">
+
+  <!-- Quick actions row 1: Finansial -->
+  <div class="db-qa-card">
+    <div class="db-qa-grid">
+      <button class="db-qa-item" onclick="openKlaimModal()">
+        <div class="db-qa-icon" style="background:#EBF2FF;"><i class="ti ti-coin" style="color:#0066FF;font-size:22px;" aria-hidden="true"></i>💰</div>
+        <span class="db-qa-label">Klaim</span>
+      </button>
+      <button class="db-qa-item" onclick="tampilkanRiwayatSaldo()">
+        <div class="db-qa-icon" style="background:#F0FDF4;"><i class="ti ti-receipt" style="color:#059669;font-size:22px;" aria-hidden="true"></i>📋</div>
+        <span class="db-qa-label">Riwayat</span>
+      </button>
+      <button class="db-qa-item" onclick="tampilkanTransferSaldo()">
+        <div class="db-qa-icon" style="background:#FFF7ED;"><i class="ti ti-send" style="color:#D97706;font-size:22px;" aria-hidden="true"></i>💸</div>
+        <span class="db-qa-label">Transfer</span>
+      </button>
+      <button class="db-qa-item" onclick="tampilkanHadiah()">
+        <div class="db-qa-icon" style="background:#FDF4FF;"><i class="ti ti-gift" style="color:#9333EA;font-size:22px;" aria-hidden="true"></i>🎁</div>
+        <span class="db-qa-label">Hadiah</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Quick actions row 2: Kompetisi -->
+  <div class="db-qa-card">
+    <div class="db-qa-grid">
+      <button class="db-qa-item" onclick="openLombaForm()">
+        <div class="db-qa-icon" style="background:#FEF2F2;"><i class="ti ti-trophy" style="color:#DC2626;font-size:20px;" aria-hidden="true"></i>🏆</div>
+        <span class="db-qa-label">Lomba</span>
+      </button>
+      <button class="db-qa-item" onclick="openMedali()">
+        <div class="db-qa-icon" style="background:#F5F3FF;"><i class="ti ti-medal" style="color:#7C3AED;font-size:20px;" aria-hidden="true"></i>🌟</div>
+        <span class="db-qa-label">Medali</span>
+      </button>
+      <button class="db-qa-item" onclick="openJuaraMingguan()">
+        <div class="db-qa-icon" style="background:#FFFBEB;"><i class="ti ti-crown" style="color:#D97706;font-size:20px;" aria-hidden="true"></i>🏅</div>
+        <span class="db-qa-label">Mingguan</span>
+      </button>
+      <button class="db-qa-item" onclick="openJuaraBulanan()">
+        <div class="db-qa-icon" style="background:#F0FDF4;"><i class="ti ti-award" style="color:#059669;font-size:20px;" aria-hidden="true"></i>🥇</div>
+        <span class="db-qa-label">Bulanan</span>
+      </button>
+    </div>
+    <div class="db-qa-grid" style="margin-top:4px;">
+      <button class="db-qa-item" onclick="openJuara4Bulanan()">
+        <div class="db-qa-icon" style="background:#FFF7ED;"><i class="ti ti-rosette" style="color:#EA580C;font-size:20px;" aria-hidden="true"></i>🎖️</div>
+        <span class="db-qa-label">4 Bulanan</span>
+      </button>
+      <button class="db-qa-item" onclick="openJuaraTahunan()">
+        <div class="db-qa-icon" style="background:#FFF0F3;"><i class="ti ti-plane" style="color:#E11D48;font-size:20px;" aria-hidden="true"></i>✈️</div>
+        <span class="db-qa-label">Tahunan</span>
+      </button>
+      <button class="db-qa-item" onclick="openHallOfFame()">
+        <div class="db-qa-icon" style="background:#FEFCE8;"><i class="ti ti-shopping-cart" style="color:#CA8A04;font-size:20px;" aria-hidden="true"></i>👑</div>
+        <span class="db-qa-label">Top Gelar</span>
+      </button>
+      <button class="db-qa-item" onclick="openModalUpdate()">
+        <div class="db-qa-icon" style="background:#EFF6FF;"><i class="ti ti-plus" style="color:#2563EB;font-size:20px;" aria-hidden="true"></i>⚙️</div>
+        <span class="db-qa-label">Pengaturan</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Quick actions row 3: Kompetisi -->
+  <div class="db-qa-card">
+    <div class="db-qa-grid">
+      <button class="db-qa-item">
+        <div class="db-qa-icon" onclick="window.open('https://komunitasbooking.github.io/kasbon/','_blank')" style="background:#FEF2F2;"><i class="ti ti-trophy" style="color:#DC2626;font-size:20px;" aria-hidden="true"></i>💳</div>
+        <span class="db-qa-label">Kasbon</span>
+      </button>
+      <button class="db-qa-item">
+        <div class="db-qa-icon" onclick="window.open('https://komunitasbooking.github.io/voucher/','_blank')" style="background:#F5F3FF;"><i class="ti ti-medal" style="color:#7C3AED;font-size:20px;" aria-hidden="true"></i>🎟️</div>
+        <span class="db-qa-label">Voucher</span>
+      </button>
+      <button class="db-qa-item">
+        <div class="db-qa-icon" onclick="window.open('https://komunitasbooking.github.io/bio/','_blank')" style="background:#FFFBEB;"><i class="ti ti-crown" style="color:#D97706;font-size:20px;" aria-hidden="true"></i>👨</div>
+        <span class="db-qa-label">Biografi</span>
+      </button>
+      <button class="db-qa-item" onclick="openLelang()">
+        <div class="db-qa-icon" style="background:#F0FDF4;"><i class="ti ti-award" style="color:#059669;font-size:20px;" aria-hidden="true"></i>🛒</div>
+        <span class="db-qa-label">Lelang</span>
+      </button>
+    </div>
+        <div class="db-qa-grid" style="margin-top:4px;">
+      <button class="db-qa-item">
+        <div class="db-qa-icon" onclick="window.open('https://komunitasbooking.github.io/ppob/','_blank')" style="background:#FFF7ED;"><i class="ti ti-rosette" style="color:#EA580C;font-size:20px;" aria-hidden="true"></i>📱</div>
+        <span class="db-qa-label">Pulsa</span>
+      </button>
+      <button class="db-qa-item">
+        <div class="db-qa-icon" onclick="window.open('https://komunitasbooking.github.io/nexus-marketplace/','_blank')" style="background:#FFF0F3;"><i class="ti ti-plane" style="color:#E11D48;font-size:20px;" aria-hidden="true"></i>🏪</div>
+        <span class="db-qa-label">Toko</span>
+      </button>
+      <button class="db-qa-item">
+        <div class="db-qa-icon" onclick="window.open('https://komunitasbooking.github.io/nexus-afiliator/','_blank')" style="background:#FEFCE8;"><i class="ti ti-shopping-cart" style="color:#CA8A04;font-size:20px;" aria-hidden="true"></i>🤝</div>
+        <span class="db-qa-label">Afiliator</span>
+      </button>
+      <button class="db-qa-item">
+        <div class="db-qa-icon" onclick="window.open('https://komunitasbooking.github.io/sale/','_blank')" style="background:#EFF6FF;"><i class="ti ti-plus" style="color:#2563EB;font-size:20px;" aria-hidden="true"></i>🎫</div>
+        <span class="db-qa-label">Flash Sale</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- FORM BOOKING -->
+  <p class="db-section-label">Form Booking</p>
+
+  <div class="db-form-card">
+
+    <!-- Tanggal -->
+    <div class="db-input-row">
+      <label class="db-input-label" for="tanggal">Tanggal main</label>
+      <div class="db-input-icon-wrap">
+        <i class="ti ti-calendar db-icon-left" aria-hidden="true"></i>
+        <input type="date" id="tanggal" class="db-input" required onchange="updateJamMulai()">
+      </div>
+    </div>
+
+    <!-- Jam & Durasi side by side -->
+    <div class="db-two-col">
+      <div class="db-input-row">
+        <label class="db-input-label" for="jamMulai">Jam mulai</label>
+        <div class="db-input-icon-wrap">
+          <i class="ti ti-clock db-icon-left" aria-hidden="true"></i>
+          <input type="time" id="jamMulai" class="db-input" required>
+        </div>
+      </div>
+      <div class="db-input-row">
+        <label class="db-input-label" for="durasi">Durasi (menit)</label>
+        <div class="db-input-icon-wrap">
+          <i class="ti ti-hourglass db-icon-left" aria-hidden="true"></i>
+          <input type="number" id="durasi" min="1" class="db-input" placeholder="60">
+        </div>
+      </div>
+    </div>
+
+    <!-- Pilih kelas -->
+    <div class="db-input-row" style="margin-bottom:0;">
+      <label class="db-input-label">Pilih kelas</label>
+      <div class="db-type-grid" id="dbTypeGrid">
+        <button class="db-type-option active" type="button" onclick="dbSelectType(this,'HP')">
+          <span class="te">🎮</span>
+          <span class="tn">Reguler</span>
+          <span class="td">Standard</span>
+        </button>
+        <button class="db-type-option" type="button" onclick="dbSelectType(this,'PS2')">
+          <span class="te">⭐</span>
+          <span class="tn">VIP</span>
+          <span class="td">Eksklusif</span>
+        </button>
+        <button class="db-type-option" type="button" onclick="dbSelectType(this,'PS3')">
+          <span class="te">💎</span>
+          <span class="tn">VVIP</span>
+          <span class="td">Premium</span>
+        </button>
+        <button class="db-type-option" type="button" onclick="dbSelectType(this,'PS4')">
+          <span class="te">🚀</span>
+          <span class="tn">Ultra VVIP</span>
+          <span class="td">Terbaik</span>
+        </button>
+      </div>
+      <!-- Hidden input tetap kompatibel dengan JS lama -->
+      <select id="jenis" style="display:none;">
+        <option value="HP">REGULER</option>
+        <option value="PS2">VIP</option>
+        <option value="PS3">VVIP</option>
+        <option value="PS4">ULTRA VVIP</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Submit -->
+  <button class="db-submit-btn" id="btnBooking" onclick="submitBookingForm()">
+    <i class="ti ti-bolt" aria-hidden="true"></i>
+    Kirim Booking Sekarang
+  </button>
+
+  <!-- Logout + Chat -->
+  <div class="db-logout-row">
+  <!-- LOGOUT -->
+  <button
+    onclick="logout()"
+    class="form-button"
+    style="
+      flex:1;
+      background-color:#e74c3c;
+      color:white;
+      padding:12px;
+      font-size:16px;
+      border:none;
+      border-radius:10px;
+      cursor:pointer;
+      transition:background-color .3s ease;
+    "
+    onmouseover="this.style.backgroundColor='#c0392b'"
+    onmouseout="this.style.backgroundColor='#e74c3c'"
+  >
+    🔓 Logout
+  </button>
+    <button class="form-button rainbow-btn" onclick="window.open('https://komunitasbooking.github.io/ngobrol/','_blank')">
+      💬 Ngobrol
+    </button>
+  </div>
+
+  <div id="bookingResult" style="margin-top:12px; font-weight:600; text-align:center; font-size:14px; color:#00C48C;"></div>
+
+</div><!-- /db-content -->
+</div><!-- /dashboard -->
+
+<!-- ===== Tambahkan script ini (bisa di mana saja setelah elemen) ===== -->
+<script>
+function dbSelectType(el, val) {
+  document.querySelectorAll('.db-type-option').forEach(o => o.classList.remove('active'));
+  el.classList.add('active');
+  // Sync ke <select id="jenis"> agar JS lama tetap baca nilai yang benar
+  var sel = document.getElementById('jenis');
+  if (sel) sel.value = val;
+}
+</script>
+
+<!-- Modal Top Up -->
+<div id="modalTopUp" 
+     style="
+       display:none;
+       position:fixed;
+       top:0;left:0;
+       width:100%;height:100%;
+       background:rgba(0,0,0,0.6);
+       backdrop-filter: blur(4px); /* Efek blur estetik pada latar belakang */
+       z-index:1000;
+       justify-content:center;
+       align-items:center;
+       font-family:'Segoe UI', -apple-system, sans-serif;
+       padding:16px; /* Jarak aman agar modal tidak menempel ke tepi layar HP */
+       box-sizing: border-box;
+     ">
+  <div style="
+       background:#fff;
+       padding:24px 20px;
+       border-radius:20px; /* Sudut lebih melengkung modern */
+       width: 100%;
+       max-width: 380px; /* Lebar maksimal di PC, otomatis mengecil di HP */
+       text-align:center;
+       box-shadow:0 12px 32px rgba(0,0,0,0.15);
+       box-sizing: border-box;
+       animation: fadeInModal 0.2s ease-out; /* Animasi pop-up halus */
+     ">
+    
+    <h3 style="margin-top:0; margin-bottom:20px; font-size:20px; font-weight:700; color:#1e293b; display:flex; align-items:center; justify-content:center; gap:8px;">
+      <span>💳</span> Top Up Saldo
+    </h3>
+
+    <!-- Pilihan nominal: Otomatis 3 kolom di layar sedang, dan turun menjadi 2 kolom di HP yang sangat sempit -->
+    <div style="
+         display:grid; 
+         grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); 
+         gap:10px; 
+         margin-bottom:20px;
+       ">
+      <button class="btnNominal" onclick="pilihNominal(10000)" style="padding:12px 8px; font-size:13px; font-weight:600; color:#475569; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; cursor:pointer; transition:all 0.2s;">Rp 10.000</button>
+      <button class="btnNominal" onclick="pilihNominal(20000)" style="padding:12px 8px; font-size:13px; font-weight:600; color:#475569; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; cursor:pointer; transition:all 0.2s;">Rp 20.000</button>
+      <button class="btnNominal" onclick="pilihNominal(50000)" style="padding:12px 8px; font-size:13px; font-weight:600; color:#475569; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; cursor:pointer; transition:all 0.2s;">Rp 50.000</button>
+      <button class="btnNominal" onclick="pilihNominal(100000)" style="padding:12px 8px; font-size:13px; font-weight:600; color:#475569; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; cursor:pointer; transition:all 0.2s;">Rp 100.000</button>
+      <button class="btnNominal" onclick="pilihNominal(500000)" style="padding:12px 8px; font-size:13px; font-weight:600; color:#475569; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; cursor:pointer; transition:all 0.2s;">Rp 500.000</button>
+      <button class="btnNominal" onclick="pilihNominal(1000000)" style="padding:12px 8px; font-size:13px; font-weight:600; color:#475569; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; cursor:pointer; transition:all 0.2s;">Rp 1.000.000</button>
+    </div>
+
+    <!-- Input custom -->
+    <div style="position:relative; margin-bottom:24px;">
+      <input type="number" id="customNominal" placeholder="Masukkan nominal lain..."
+             style="width:100%; box-sizing:border-box; padding:12px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:14px; font-weight:500; outline:none; transition:border-color 0.2s;" 
+             onfocus="this.style.borderColor='#3b82f6'" 
+             onblur="this.style.borderColor='#cbd5e1'" />
+    </div>
+
+    <!-- Tombol aksi -->
+    <div style="display:flex; flex-direction:row; justify-content:space-between; gap:10px;">
+      <button onclick="closeModalTopUp()" 
+              style="flex:1; background:#f1f5f9; color:#64748b; padding:12px; font-size:14px; font-weight:600; border:none; border-radius:10px; cursor:pointer; transition:0.2s;"
+              onmouseover="this.style.background='#e2e8f0'"
+              onmouseout="this.style.background='#f1f5f9'">
+        Batal
+      </button>
+      <button onclick="lanjutTopUp()" 
+              style="flex:1; background:#10b981; color:#fff; padding:12px; font-size:14px; font-weight:600; border:none; border-radius:10px; cursor:pointer; box-shadow:0 4px 12px rgba(16,185,129,0.2); transition:0.2s;"
+              onmouseover="this.style.background='#059669'"
+              onmouseout="this.style.background='#10b981'">
+        Lanjut
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Tambahan Style CSS Animasi singkat (bisa diletakkan di dalam tag <style> aplikasi Anda jika ada) -->
+<style>
+  @keyframes fadeInModal {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+</style>
+
+
+<!-- ========================= MODAL CHAT ========================= --> <div id="chatModal" style=" display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:99999; justify-content:center; align-items:center; backdrop-filter:blur(3px); "> <!-- BOX --> <div style=" width:95%; max-width:450px; height:88vh; background:#111b21; border-radius:20px; overflow:hidden; position:relative; box-shadow:0 0 30px rgba(0,0,0,.5); "> <!-- TOMBOL CLOSE --> <button onclick="tutupChat()" style=" position:absolute; top:10px; right:10px; z-index:10; width:38px; height:38px; border:none; border-radius:50%; background:rgba(0,0,0,.5); color:white; font-size:22px; cursor:pointer; " > × </button> <!-- IFRAME CHAT --> <iframe id="chatFrame" src="" style=" width:100%; height:100%; border:none; background:#111b21; " allow="clipboard-write" ></iframe> </div> </div>
+
+<!-- Modal QRIS -->
+<div id="modalQRIS" 
+     style="
+       display:none;
+       position:fixed;
+       top:0;left:0;
+       width:100%;height:100%;
+       background:rgba(15, 23, 42, 0.6); /* Warna overlay gelap modern slate */
+       backdrop-filter: blur(4px); /* Efek blur transparan di latar belakang */
+       z-index:1001;
+       justify-content:center;
+       align-items:center;
+       font-family:'Segoe UI', -apple-system, sans-serif;
+       padding:16px; /* Jarak aman tepi layar HP */
+       box-sizing: border-box;
+     ">
+  <div style="
+       background:#fff;
+       padding:24px 20px;
+       border-radius:20px; /* Sudut melengkung modern */
+       width: 100%;
+       max-width: 360px; /* Lebar maksimal di PC, otomatis mengecil di HP */
+       text-align:center;
+       box-shadow:0 20px 40px rgba(0,0,0,0.15);
+       box-sizing: border-box;
+       animation: fadeInQRIS 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* Animasi pop up membal halus */
+     ">
+    
+    <h3 style="margin-top:0; margin-bottom:6px; font-size:18px; font-weight:700; color:#1e293b;">Pembayaran QRIS</h3>
+    <p style="margin-top:0; margin-bottom:4px; color:#64748b; font-size:14px;">Silakan transfer sebesar:</p>
+    <h2 id="qrisNominal" style="color:#10b981; margin:0 0 16px 0; font-size:26px; font-weight:800; letter-spacing:-0.5px;">Rp 0</h2>
+
+    <!-- Wadah Gambar QRIS Responsif -->
+    <div style="
+         background:#f8fafc; 
+         padding:12px; 
+         border-radius:14px; 
+         border:1px solid #e2e8f0; 
+         margin-bottom:20px; 
+         display:inline-block;
+         box-sizing: border-box;
+         max-width: 100%;
+       ">
+      <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgPpfesE0ZpPV8PdOT3owD3TH87Rh94LDpe6Dvnw7HcKlw9HR45dlrQnW0AlPAwhyphenhyphen_W5vaSi0UrsAtC4WkBK_iGfvB_kIptNd4_CbqoCO_Rb_mdwCo_oZkfjqDwjt0p651dwAymo_drsEVxi-cCICpcEhfmk1yM8E0ZrKXv6UC1K0iInDaHXD1ABMmECAM/s320/WhatsApp%20Image%202025-08-29%20at%2023.30.38.jpeg" 
+           alt="QRIS Rental Arrouf" 
+           style="
+             width: 100%;
+             max-width: 240px; /* Ukuran proporsional gambar QRIS */
+             height: auto; /* Tinggi otomatis agar aspek rasio struk gambar tidak gepeng */
+             aspect-ratio: 240 / 340;
+             display: block;
+             margin: 0 auto;
+             border-radius: 8px;
+           ">
+    </div>
+
+    <!-- Tombol aksi: Berjejer penuh dalam 1 baris horisontal yang seimbang -->
+    <div style="display:flex; justify-content:space-between; gap:8px;">
+      <button onclick="closeModalQRIS()" 
+              style="flex:1; background:#f1f5f9; color:#64748b; padding:12px 8px; border:none; border-radius:10px; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.2s; white-space:nowrap;">
+        Tutup
+      </button>
+
+      <button id="btnWA"
+              style="flex:1.2; background:#25d366; color:#fff; padding:12px 8px; border:none; border-radius:10px; cursor:pointer; font-size:13px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:4px; transition:all 0.2s; white-space:nowrap; box-shadow:0 4px 12px rgba(37,211,102,0.2);">
+        <span>💬</span> WhatsApp
+      </button>
+
+      <button id="btnTopUpSekarang"
+              onclick="kirimTopUpKlaim()"
+              style="flex:1.2; background:#3b82f6; color:#fff; padding:12px 8px; border:none; border-radius:10px; cursor:pointer; font-size:13px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:4px; transition:all 0.2s; white-space:nowrap; box-shadow:0 4px 12px rgba(59,130,246,0.2);">
+        <span>🚀</span> Top Up
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  @keyframes fadeInQRIS {
+    from {opacity:0; transform:scale(0.92) translateY(10px);}
+    to {opacity:1; transform:scale(1) translateY(0);}
+  }
+  #modalQRIS button:hover {
+    filter: brightness(0.95);
+    transform: translateY(-1px);
+  }
+  #modalQRIS button:active {
+    transform: translateY(0);
+  }
+</style>
+
+<!-- input hidden untuk top up otomatis -->
+<input type="hidden" id="topupNominal">
+<input type="hidden" id="topupNama">
+<input type="hidden" id="topupKet">
+<input type="hidden" id="topupUser">
+
+<!-- Tombol klaim dummy (dipakai submitKlaim) -->
+<button id="btnKlaim" style="display:none;"></button>
+
+<!------ --------->
+
+<!-- Modal Hall of Fame -->
+<div id="modalHallOfFame" 
+     style="
+       display: none; /* Diamankan agar tersembunyi sempurna saat awal dimuat */
+       position: fixed; 
+       z-index: 1000; 
+       top: 0; left: 0; right: 0; bottom: 0; /* Mengunci seluruh sisi layar */
+       width: 100%; height: 100%; 
+       background: rgba(15, 23, 42, 0.6); 
+       backdrop-filter: blur(4px); 
+       padding: 16px; 
+       box-sizing: border-box;
+       font-family: 'Segoe UI', -apple-system, sans-serif;
+     ">
+  <div style="
+      background: #ffffff;
+      width: 100%;
+      max-width: 450px; 
+      max-height: 85vh; 
+      padding: 24px 20px;
+      border-radius: 24px; 
+      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      
+      /* PERBAIKAN UTAMA: Memaksa posisi kotak putih selalu di tengah layar PC/HP */
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      margin: 0;
+      
+      animation: fadeInHOF 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  ">
+    <!-- Header -->
+    <h3 style="text-align:center; margin-top:0; margin-bottom:16px; font-size:20px; font-weight:700; color:#1e293b; display:flex; align-items:center; justify-content:center; gap:8px;">
+      <span>🏆</span> Riwayat Gelar Juara
+    </h3>
+
+    <!-- Loader Modern -->
+    <div id="loader" class="loader-container" style="display: none; text-align:center; padding:20px 0;">
+      <div class="loader-spinner" style="
+          border: 4px solid #f1f5f9;
+          border-top: 4px solid #3b82f6; 
+          border-radius: 50%;
+          width: 36px;
+          height: 36px;
+          animation: spinHOF 0.8s linear infinite;
+          margin:auto;
+      "></div>
+      <p style="margin-top: 12px; font-weight: 600; color:#64748b; font-size:14px;">Memuat data...</p>
+    </div>
+
+    <!-- Konten Hall of Fame (Scrollable Lembut) -->
+    <div class="custom-scroll" style="flex:1; overflow-y:auto; padding-right:4px; margin-bottom:16px;">
+      <div id="hallOfFameContent"></div>
+    </div>
+
+    <!-- Tombol Tutup (Tetap di bawah, Lebar Penuh) -->
+    <div style="margin-top:auto;">
+      <button onclick="closeModal()" style="
+          width:100%;
+          padding:12px;
+          border:none;
+          border-radius:12px;
+          background:#f1f5f9; 
+          color:#475569;
+          cursor:pointer;
+          font-size:14px;
+          font-weight:600;
+          transition:all 0.2s;
+      "
+      onmouseover="this.style.background='#e2e8f0'; this.style.color='#1e293b';"
+      onmouseout="this.style.background='#f1f5f9'; this.style.color='#475569';">
+        Tutup
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Animasi Pop-Up Membal Halus (Disesuaikan dengan posisi translate) */
+@keyframes fadeInHOF {
+  from {opacity:0; transform: translate(-50%, -45%) scale(0.95);}
+  to {opacity:1; transform: translate(-50%, -50%) scale(1);}
+}
+
+/* Animasi Spinner */
+@keyframes spinHOF {
+  0% { transform: rotate(0deg);}
+  100% { transform: rotate(360deg);}
+}
+
+/* Kustomisasi scrollbar agar terlihat tipis dan cantik di PC/HP */
+.custom-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+</style>
+
+
+<!-- Modal Transfer Saldo -->
+<div id="modalTransfer" style="
+  display:none;
+  position:fixed;
+  top:0; left:0; right:0; bottom:0;
+  background:rgba(15, 23, 42, 0.6); /* Overlay slate gelap modern */
+  backdrop-filter: blur(4px); /* Efek blur transparan di latar belakang */
+  justify-content:center;
+  align-items:center;
+  z-index:1000;
+  padding:16px; /* Jarak aman tepi layar HP */
+  box-sizing: border-box;
+  font-family:'Segoe UI', -apple-system, sans-serif;
+">
+  <div style="
+    background: #ffffff;
+    padding: 24px 20px;
+    border-radius: 20px; /* Sudut melengkung premium */
+    width: 100%;
+    max-width: 350px; /* Pas untuk layar PC, otomatis menyesuaikan di HP */
+    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    box-sizing: border-box;
+    animation: fadeInTransfer 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* Animasi pop-up membal halus */
+  " id="modalBoxTransfer">
+    
+    <h3 style="
+      margin-top:0;
+      margin-bottom:20px;
+      text-align:center;
+      color:#1e293b;
+      font-size:18px;
+      font-weight:700;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+    "><span>💸</span> Transfer Saldo</h3>
+    
+    <!-- Input Nominal -->
+    <div style="margin-bottom:14px;">
+      <label style="display:block; font-weight:600; color:#475569; font-size:13px; margin-bottom:6px;">Nominal:</label>
+      <input type="number" id="nominalTransfer" placeholder="Masukkan jumlah transfer..." style="
+        width:100%; padding:12px;
+        border-radius:10px; border:1.5px solid #cbd5e1;
+        outline:none; font-size:14px; font-weight:500;
+        transition:0.2s;
+        box-sizing:border-box;
+      " onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#cbd5e1'">
+    </div>
+    
+    <!-- Input Penerima -->
+    <div style="margin-bottom:14px;">
+      <label style="display:block; font-weight:600; color:#475569; font-size:13px; margin-bottom:6px;">Kirim ke (Nama):</label>
+      <input type="text" id="namaTujuan" placeholder="Nama lengkap penerima..." style="
+        width:100%; padding:12px;
+        border-radius:10px; border:1.5px solid #cbd5e1;
+        outline:none; font-size:14px; font-weight:500;
+        transition:0.2s;
+        box-sizing:border-box;
+      " onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#cbd5e1'">
+    </div>
+    
+    <!-- Input Keterangan -->
+    <div style="margin-bottom:24px;">
+      <label style="display:block; font-weight:600; color:#475569; font-size:13px; margin-bottom:6px;">Keterangan:</label>
+      <input type="text" id="keteranganTransfer" placeholder="Catatan transfer (opsional)..." style="
+        width:100%; padding:12px;
+        border-radius:10px; border:1.5px solid #cbd5e1;
+        outline:none; font-size:14px; font-weight:500;
+        transition:0.2s;
+        box-sizing:border-box;
+      " onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#cbd5e1'">
+    </div>
+    
+    <!-- Tombol Aksi: Berjejer seimbang memenuhkan baris bawah -->
+    <div style="display:flex; justify-content:space-between; gap:10px;">
+      <button onclick="tutupModalTransfer()" style="
+        flex:1;
+        background:#f1f5f9;
+        color:#64748b; padding:12px;
+        border:none; border-radius:10px; cursor:pointer;
+        font-weight:600; font-size:14px;
+        transition:0.2s;
+      " onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+        Batal
+      </button>
+
+      <button id="btnKirimTransfer" onclick="kirimTransfer()" style="
+        flex:1.2;
+        background:#3b82f6; /* Diselaraskan menggunakan warna aksen biru modern */
+        color:white; padding:12px;
+        border:none; border-radius:10px; cursor:pointer;
+        font-weight:600; font-size:14px;
+        box-shadow: 0 4px 12px rgba(59,130,246,0.2);
+        transition:0.2s;
+      " onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
+        Kirim
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Animasi Pop-Up Membal Halus */
+@keyframes fadeInTransfer {
+  from {opacity:0; transform:scale(0.93) translateY(10px);}
+  to {opacity:1; transform:scale(1) translateY(0);}
+}
+</style>
+
+
+<!-- 🔹 Loader Global -->
+<div id="loader" style="
+  display:none;
+  position:fixed;
+  top:0; left:0; right:0; bottom:0;
+  background:rgba(255,255,255,0.7);
+  justify-content:center;
+  align-items:center;
+  z-index:10000;
+">
+  <div style="
+    width:60px; height:60px;
+    border:6px solid #f3f3f3;
+    border-top:6px solid #2ecc71;
+    border-radius:50%;
+    animation: spin 1s linear infinite;
+  "></div>
+</div>
+
+<!-- 🔹 Popup Sukses -->
+<div id="popupSuccess" style="
+  display:none;
+  position:fixed;
+  top:0; left:0; right:0; bottom:0;
+  background:rgba(0,0,0,0.5);
+  justify-content:center;
+  align-items:center;
+  z-index:2000;
+">
+  <div style="
+    background:white;
+    padding:30px;
+    border-radius:15px;
+    text-align:center;
+    box-shadow:0 5px 20px rgba(0,0,0,0.3);
+    animation: popupZoom 0.3s ease;
+  ">
+    <div style="
+      width:80px; height:80px;
+      border-radius:50%;
+      border:4px solid #2ecc71;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      margin:0 auto 15px;
+      position:relative;
+      animation: circlePop 0.4s ease;
+    ">
+      <svg width="50" height="50" viewBox="0 0 50 50">
+        <path d="M14 27 L22 35 L36 16" fill="none" stroke="#2ecc71" stroke-width="5"
+              stroke-linecap="round" stroke-linejoin="round"
+              style="stroke-dasharray: 50; stroke-dashoffset: 50;">
+        </path>
+      </svg>
+    </div>
+    <div id="popupMessage" style="
+      font-family:'Segoe UI',sans-serif;
+      font-size:16px;
+      color:#2c3e50;
+      font-weight:600;
+    ">Berhasil!</div>
+  </div>
+</div>
+
+<!-- 🔹 Style Animasi -->
+<style>
+@keyframes popupZoom {from {transform:scale(0.8); opacity:0;} to {transform:scale(1); opacity:1;}}
+@keyframes circlePop {from {transform:scale(0.5);} to {transform:scale(1);}}
+@keyframes spin {0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
+</style>
+
+<!-- Modal Hadiah -->
+<div id="modalHadiah" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background-color:rgba(0,0,0,0.6);
+  z-index:1000;
+  pointer-events:auto;
+">
+  <div style="
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background:white;
+    border-radius:16px;
+    width: 90vw;          /* Lebar 90% layar */
+    max-width: 800px;     /* Maksimal di desktop */
+    height: 90vh;         /* Tinggi 90% layar */
+    display:flex;
+    flex-direction:column;
+    box-shadow:0 4px 20px rgba(0,0,0,0.3);
+    overflow:hidden;
+    z-index:1001;
+  ">
+    <!-- Header Modal -->
+    <div style="
+      padding:12px;
+      background:#e67e22;
+      color:white;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    ">
+      <strong>🎁 Daftar Hadiah</strong>
+      <button onclick="tutupHadiah()" style="
+        background:transparent;
+        border:none;
+        color:white;
+        font-size:28px;
+        cursor:pointer;
+      ">&times;</button>
+    </div>
+
+    <!-- Konten Modal -->
+    <iframe id="iframeHadiah" src="" 
+      style="
+        border:none; 
+        width:100%; 
+        flex:1; 
+        position:relative; 
+        z-index:1;
+        touch-action: manipulation;
+      "
+      allow="fullscreen; clipboard-read; clipboard-write; accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen
+      allowtransparency="true">
+    </iframe>
+  </div>
+</div>
+
+<!-- Update Data Modal -->
+<div id="modalUpdateData" class="modal-hidden">
+  <div class="modal-box">
+    <!-- Header Modal -->
+    <div class="modal-header">
+      <span>⚙️ Update Data Pemain</span>
+      <span onclick="closeModalUpdate()" class="modal-close">&times;</span>
+    </div>
+
+    <!-- Konten Modal -->
+    <div style="padding:20px;">
+      <label>Password / PIN:</label>
+      <input type="text" id="updPIN" class="form-input modern-input" style="margin-bottom:12px;">
+
+      <label>Nama Lengkap:</label>
+      <input type="text" id="updNamaLengkap" class="form-input modern-input" style="margin-bottom:12px;">
+
+      <label>Nomor WA:</label>
+      <input type="text" id="updWA" class="form-input modern-input" style="margin-bottom:12px;">
+
+      <label>Alamat:</label>
+      <input type="text" id="updAlamat" class="form-input modern-input" style="margin-bottom:12px;">
+
+      <label>Tanggal Lahir:</label>
+      <input type="date" id="updTanggalLahir" class="modern-input" style="margin-bottom:12px;">
+
+      <label>Hobi</label>
+      <input type="text" id="updHobi" class="form-input modern-input" style="margin-bottom:12px;">
+
+      <button id="btnSimpanData" onclick="simpanUpdateData()" class="btn-save">💾 Simpan Data</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* ✅ Modal default hidden */
+  .modal-hidden {
+    display: none;
+  }
+
+  /* ✅ Modal aktif flex-center */
+  .modal-active {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0,0,0,0.5);
+    backdrop-filter: blur(3px);
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .modal-box {
+    background: white;
+    width: 90%;
+    max-width: 420px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+    animation: scaleUp 0.25s ease;
+    position: relative;
+  }
+
+  .modal-header {
+    background: linear-gradient(135deg,#3498db,#2980b9);
+    color: white;
+    padding: 15px 20px;
+    font-size: 18px;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-close {
+    cursor: pointer;
+    font-size: 24px;
+    line-height: 24px;
+    transition: 0.2s;
+  }
+  .modal-close:hover {
+    transform: scale(1.2);
+    color: #fdd;
+  }
+
+  .btn-save {
+    background: linear-gradient(135deg,#27ae60,#219150);
+    color:white;
+    padding:12px 20px;
+    width:100%;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:16px;
+    font-weight:bold;
+    transition: all 0.2s ease;
+  }
+  .btn-save:hover {
+    filter: brightness(1.1);
+  }
+  .btn-save:active {
+    transform: scale(0.97);
+  }
+
+  @keyframes fadeIn {
+    from {opacity:0;}
+    to {opacity:1;}
+  }
+  @keyframes scaleUp {
+    from {opacity:0; transform:scale(0.9);}
+    to {opacity:1; transform:scale(1);}
+  }
+
+  /* Input modern */
+  .modern-input {
+    width:100%;
+    padding:10px 12px;
+    border:1px solid #ddd;
+    border-radius:8px;
+    outline:none;
+    transition: all 0.2s ease;
+    box-sizing:border-box;
+  }
+  .modern-input:focus {
+    border-color:#3498db;
+    box-shadow: 0 0 6px rgba(52,152,219,0.4);
+  }
+</style>
+
+<!-- Modal Input Lelang -->
+<div id="modalLelangInput" style="
+  display:none;
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(145deg, #ffffff, #f9f9f9);
+  padding: 15px 20px;
+  border-radius: 15px;
+  box-shadow: 0 12px 25px rgba(0,0,0,0.35);
+  width: 450px;
+  max-width: 92%;
+  max-height: 90vh; /* Membatasi tinggi modal agar tidak keluar layar HP */
+  overflow-y: auto;  /* Otomatis memunculkan scroll jika HP terlalu pendek */
+  z-index: 900;
+  text-align: center;
+  box-sizing: border-box;
+  animation: fadeScaleIn 0.3s ease forwards;
+">
+
+  <!-- HEADER PLAYER INFO -->
+  <div style="
+    display: flex;
+    flex-wrap: wrap; /* Mengizinkan tombol turun jika layar HP sangat sempit */
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(90deg,#3498db,#2980b9);
+    color: #fff;
+    padding: 10px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    box-sizing: border-box;
+  ">
+    <span style="white-space: nowrap;">⭐ Poin: <span id="poinUser">0</span></span>
+    <span style="white-space: nowrap; max-width: 120px; overflow: hidden; text-overflow: ellipsis;">👤 <span id="namaUser">-</span></span>
+    <button onclick="bukaBox()" style="
+      background: #f1c40f;
+      border: none;
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: bold;
+      color: #2c3e50;
+      cursor: pointer;
+      transition: all .2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      flex-shrink: 0;
+      text-align: center;
+    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+        🎁 Mistery Box
+    </button>
+  </div>
+
+  <!-- Judul -->
+  <h3 id="judulBarang" style="
+    display: block;
+    font-size: 20px;
+    color: #e67e22;
+    margin: 0 0 12px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    word-wrap: break-word;
+  "></h3>
+
+  <!-- Ikon Barang -->
+  <img id="iconBarang" src="" alt="Icon Barang" style="
+    display: none;
+    margin: 0 auto 15px;
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  ">
+  
+  <!-- Harga -->
+  <p style="
+    display: block;
+    font-size: 16px;
+    margin: 8px 0;
+    word-wrap: break-word;
+    color: #555;
+  ">
+    Harga saat ini:<br>
+    <span id="hargaBarang" style="font-weight:bold; color:#2c3e50; font-size: 18px;"></span>
+  </p>
+
+  <!-- Countdown -->
+  <p style="
+    display: block;
+    font-size: 14px;
+    color: #c0392b;
+    margin: 8px 0;
+    word-wrap: break-word;
+  ">
+    Selesai dalam:<br>
+    <span id="countdown" style="font-weight:bold; font-size: 16px;">-</span>
+  </p>
+
+  <!-- Label Input -->
+  <label for="inputTebakan" style="
+    display: block;
+    width: 100%;
+    text-align: center;
+    margin: 15px 0 8px;
+    font-weight: 600;
+    font-size: 14px;
+    color: #333;
+  ">
+    Masukkan Penawaran Anda (10 per ticket):
+  </label>
+
+  <!-- Input -->
+  <input type="number" id="inputTebakan" style="
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #bdc3c7;
+    font-size: 16px;
+    margin-bottom: 20px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+  ">
+
+  <!-- Baris Tombol Aksi -->
+  <div class="btn-row" style="
+    display: flex;
+    flex-wrap: nowrap; /* Mengunci agar tombol tetap berjajar ke samping */
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  ">
+    <button id="btnKirim" onclick="kirimTebakan()" class="btn btn-hijau">Kirim</button>
+    <button id="btnAmbil" onclick="ambilBarang()" class="btn btn-kuning">Ambil</button>
+    <button onclick="closeLelang()" class="btn btn-abu">Tutup</button>
+  </div>
+</div>
+
+<!-- Modal Mistery Box -->
+<div id="modalBox" style="
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  display: none; /* Dikontrol via JS */
+  justify-content: center;
+  align-items: center;
+  padding: 15px;
+  box-sizing: border-box;
+  z-index: 9999;
+">
+  <div style="
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    width: 100%;
+    max-width: 360px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    box-sizing: border-box;
+  ">
+    <h2 style="margin: 0 0 15px; font-size: 22px;">🎉 Selamat!</h2>
+    <p id="hadiahBox" style="font-size: 18px; font-weight: bold; margin: 0 0 20px; word-wrap: break-word;"></p>
+    <button onclick="closeBox()" style="
+      background: #e74c3c;
+      border: none;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      width: 100%; /* Tombol penuh layar lebar di HP */
+      box-sizing: border-box;
+    ">Tutup</button>
+  </div>
+</div>
+
+<!-- Modal Pemenang Lelang -->
+<div id="modalLelangPemenang" style="
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.7);
+  justify-content: center;
+  align-items: center;
+  padding: 15px;
+  box-sizing: border-box;
+  z-index: 1000;
+  animation: fadeIn 0.4s ease;
+">
+  <div style="
+    background: linear-gradient(145deg, #ffffff, #f0f0f0);
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    width: 100%;
+    max-width: 400px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    animation: bounceIn 0.6s ease forwards;
+    box-sizing: border-box;
+  ">
+    <!-- Judul -->
+    <h2 style="color: #e67e22; font-size: 22px; margin: 0 0 15px; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); word-wrap: break-word;">
+      🎉 Lelang Dimenangkan! 🎉
+    </h2>
+
+    <!-- Ikon Produk -->
+    <img id="modalPemenangIcon" 
+     src="" 
+     alt="Produk" 
+     style="
+       display: none; 
+       width: 100%; 
+       max-width: 100px; 
+       max-height: 100px; 
+       height: auto; 
+       margin: 10px auto; 
+       border-radius: 12px; 
+       box-shadow: 0 4px 10px rgba(0,0,0,0.2); 
+       object-fit: contain;
+     " />
+
+    <!-- Informasi Pemenang & Produk -->
+    <p id="modalPemenangNama" style="font-weight: 700; font-size: 18px; color: #2c3e50; margin: 8px 0; word-wrap: break-word;"></p>
+    <p id="modalPemenangHarga" style="font-size: 16px; color: #16a085; margin: 5px 0; word-wrap: break-word;"></p>
+    <p id="modalPemenangProduk" style="font-size: 16px; color: #2980b9; margin: 5px 0; word-wrap: break-word;"></p>
+
+    <!-- Tombol Aksi Bawah Gerak Vertikal di HP -->
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px; width: 100%; box-sizing: border-box;">
+        <button onclick="openModalPartisipan()" style="
+          width: 100%;
+          padding: 12px;
+          border: none;
+          border-radius: 8px;
+          background: linear-gradient(90deg, #f39c12, #e67e22);
+          color: white;
+          font-size: 15px;
+          font-weight: bold;
+          cursor: pointer;
+          box-sizing: border-box;
+          transition: all 0.2s ease;
+        " onmouseover="this.style.transform='scale(1.02)';" onmouseout="this.style.transform='scale(1)';">
+          👥 Partisipan
+        </button>
+
+        <button onclick="closeModalPemenang()" style="
+          width: 100%;
+          padding: 12px;
+          border: none;
+          border-radius: 8px;
+          background: linear-gradient(90deg, #3498db, #2980b9);
+          color: white;
+          font-size: 15px;
+          font-weight: bold;
+          cursor: pointer;
+          box-sizing: border-box;
+          transition: all 0.2s ease;
+        " onmouseover="this.style.transform='scale(1.02)';" onmouseout="this.style.transform='scale(1)';">
+          Tutup
+        </button>
+    </div>
+  </div>
+</div>
+
+<!-- Gaya Desain Global & Animasi -->
+<style>
+  .btn {
+    flex: 1;
+    padding: 12px 5px; /* Kompresi padding horizontal agar teks tidak terpotong di HP */
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    box-sizing: border-box;
+    white-space: nowrap;
+    min-width: 0; /* Mengunci flex-item agar tidak meluap */
+    transition: transform .2s ease, filter .2s ease;
+  }
+  .btn:active {
+    transform: scale(0.95) !important; /* Efek ditekan jari di HP */
+  }
+  .btn-hijau  { background: linear-gradient(90deg,#27ae60,#2ecc71); }
+  .btn-kuning { background: linear-gradient(90deg,#f39c12,#f1c40f); }
+  .btn-abu    { background: linear-gradient(90deg,#7f8c8d,#95a5a6); }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes bounceIn {
+    0%   { transform: scale(0.8); opacity: 0; }
+    70%  { transform: scale(1.03); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+</style>
+
+<!-- Modal Partisipan -->
+<div id="modalPartisipan" style="
+  display:none;
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.7);
+  justify-content:center;
+  align-items:center;
+  z-index:1100;
+">
+
+  <div style="
+    background:white;
+    padding:20px;
+    border-radius:12px;
+    width:90%;
+    max-width:400px;
+    max-height:85%;
+    display: flex;
+    flex-direction: column;
+  ">
+
+    <h3 style="text-align:center; color:#e67e22; margin-top:0; margin-bottom:5px;">
+      📊 Partisipasi Pemain
+    </h3>
+    <p style="text-align:center; color:#7f8c8d; font-size:12px; margin-bottom:15px;">
+      Penawaran terunik dan termurah akan menjadi pemenang
+    </p>
+
+    <!-- 🔍 Kolom Pencarian Nama -->
+    <div style="margin-bottom: 15px;">
+      <input type="text" id="cariNama" placeholder="🔍 Cari nama Anda..." 
+        onkeyup="filterNama()"
+        style="
+          width: 100%;
+          padding: 10px;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          box-sizing: border-box;
+          font-size: 14px;
+          outline: none;
+        ">
+    </div>
+
+    <!-- 📜 Area Daftar (Scrollable) -->
+    <div id="listPartisipan" style="
+      flex: 1;
+      overflow-y: auto;
+      border: 1px solid #f0f0f0;
+      border-radius: 8px;
+      padding: 5px;
+      background: #fafafa;
+    ">
+      <!-- Data akan diisi oleh JS -->
+    </div>
+
+    <button onclick="closeModalPartisipan()" style="
+      margin-top:15px;
+      width:100%;
+      padding:12px;
+      border:none;
+      border-radius:8px;
+      background:#3498db;
+      color:white;
+      font-weight:bold;
+      cursor: pointer;
+    ">
+      Tutup
+    </button>
+
+  </div>
+</div>
+
+<!-- Modal mingguan -->
+<div id="juaraMingguanModal" style="
+  display:none; 
+  position:fixed; 
+  top:0; left:0; width:100%; height:100%; 
+  background: rgba(0,0,0,0.6); 
+  justify-content:center; align-items:center;
+  z-index:5000;
+  box-sizing: border-box;
+  padding: 10px;"> <!-- Padding luar agar modal tidak menempel mentok di pinggir HP -->
+  
+  <div style="
+    background:#ffffff;
+    padding:20px;
+    border-radius:12px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.15);
+    max-width:420px;
+    width:95%; /* Fleksibel mengikuti lebar layar kecil */
+    box-sizing:border-box;
+    max-height:85vh;
+    overflow-y:auto;
+    overflow-x:hidden; /* Mengunci konten agar tidak bisa geser kanan-kiri */
+    position:relative;">
+    
+    <h2 style="text-align:center; margin-top:0; font-size: max(18px, 1.8vw); color: #333;">Juara Mingguan</h2>
+    <button onclick="closeJuaraMingguan()" style="
+      position:absolute; top:12px; right:12px; 
+      background:none; border:none; font-size:20px; cursor:pointer; padding: 0;">✖️</button>
+
+    <!-- Filter dan Search (Responsif otomatis turun ke bawah jika sangat sempit) -->
+    <div style="margin-bottom:15px; display:flex; gap:8px; flex-wrap:wrap; width: 100%; box-sizing: border-box;">
+      <select id="filterGelar" style="flex:1; min-width: 120px; padding:6px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
+        <option value="">Semua Gelar</option>
+        <option>Raja Petarung 👑</option>
+        <option>Pejuang Tangguh ⚔️</option>
+        <option>Penantang Hebat 💥</option>
+        <option>Sang Pengabdi 🛡️</option>
+        <option>Sang Bintang ✨</option>
+        <option>The Gentleman 🎩</option>
+        <option>Otak Jenius 🧠</option>
+        <option>Si Penembak Jitu 🎯</option>
+        <option>Sang Penantang 🗡️</option>
+      </select>
+      <input type="text" id="searchNama" placeholder="Cari nama..." style="flex:1.2; min-width: 120px; padding:6px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px; box-sizing: border-box;">
+    </div>
+
+    <!-- TABEL HASIL: Diubah menjadi struktur Flexbox modern agar hemat ruang dan elastis -->
+    <div style="width:100%; box-sizing:border-box; border: 1px solid #ddd; border-radius: 6px; overflow: hidden;">
+      
+      <!-- Baris Header (Pengganti <thead>) -->
+      <div style="display: flex; background:#f0f0f0; color:#333; font-weight: bold; font-size: 13px; padding: 8px 6px; border-bottom: 1px solid #ddd;">
+        <div style="flex: 1.5; text-align: left; padding-left: 2px;">Nama</div>
+        <div style="flex: 2; text-align: left;">Gelar</div>
+        <div style="flex: 1; text-align: center;">Medali</div>
+      </div>
+      
+      <!-- Kontainer Utama Data (Pengganti <tbody>) -->
+      <!-- PENTING: Id "tabelJuara" dipasang di sini sebagai wadah penampung baris data dari JS -->
+      <div id="tabelJuara" style="display: flex; flex-direction: column; width: 100%;">
+        <!-- Baris hasil diisi lewat JavaScript -->
+      </div>
+
+    </div>
+    
+  </div>
+</div>
+
+<!-- Modal Juara Bulanan -->
+<div id="juaraBulananModal" style="
+  display:none; 
+  position:fixed; 
+  top:0; left:0; width:100%; height:100%; 
+  background: rgba(0,0,0,0.6); 
+  justify-content:center; align-items:center;
+  z-index:5000;
+  box-sizing: border-box;
+  padding: 10px;">
+  
+  <div style="
+    background:#ffffff;
+    padding:20px;
+    border-radius:12px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.15);
+    max-width:420px;
+    width:95%;
+    box-sizing:border-box;
+    max-height:85vh;
+    overflow-y:auto;
+    overflow-x:hidden;
+    position:relative;">
+    
+    <h2 style="text-align:center; margin-top:0; font-size: max(18px, 1.8vw); color: #333;">Juara Bulanan</h2>
+    <button onclick="closeJuaraBulanan()" style="
+      position:absolute; top:12px; right:12px; 
+      background:none; border:none; font-size:20px; cursor:pointer; padding: 0;">✖️</button>
+
+    <!-- Filter dan Search -->
+    <div style="margin-bottom:15px; display:flex; gap:8px; flex-wrap:wrap; width: 100%; box-sizing: border-box;">
+      <select id="filterGelarBulanan" style="flex:1; min-width: 120px; padding:6px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
+        <option value="">Semua Gelar</option>
+        <option>Raja Petarung 👑</option>
+        <option>Pejuang Tangguh ⚔️</option>
+        <option>Penantang Hebat 💥</option>
+        <option>Sang Pengabdi 🛡️</option>
+        <option>Sang Bintang ✨</option>
+        <option>The Gentleman 🎩</option>
+        <option>Otak Jenius 🧠</option>
+        <option>Si Penembak Jitu 🎯</option>
+        <option>Sang Penantang 🗡️</option>
+      </select>
+      <input type="text" id="searchNamaBulanan" placeholder="Cari nama..." style="flex:1.2; min-width: 120px; padding:6px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px; box-sizing: border-box;">
+    </div>
+
+    <!-- TABEL HASIL: Menggunakan struktur Flexbox modern agar elastis -->
+    <div style="width:100%; box-sizing:border-box; border: 1px solid #ddd; border-radius: 6px; overflow: hidden;">
+      
+      <!-- Baris Header (Pengganti <thead>) -->
+      <div style="display: flex; background:#f0f0f0; color:#333; font-weight: bold; font-size: 13px; padding: 8px 6px; border-bottom: 1px solid #ddd;">
+        <div style="flex: 1.5; text-align: left; padding-left: 2px;">Nama</div>
+        <div style="flex: 2; text-align: left;">Gelar</div>
+        <div style="flex: 1; text-align: center;">Medali</div>
+      </div>
+      
+      <!-- Kontainer Utama Data (Pengganti <tbody>) -->
+      <div id="tabelJuaraBulanan" style="display: flex; flex-direction: column; width: 100%;">
+        <!-- Baris hasil diisi lewat JavaScript -->
+      </div>
+
+    </div>
+    
+  </div>
+</div>
+
+<!-- Modal Juara 4 Bulanan -->
+<div id="juara4BulananModal" style="
+  display:none; 
+  position:fixed; 
+  top:0; left:0; width:100%; height:100%; 
+  background: rgba(0,0,0,0.6); 
+  justify-content:center; align-items:center;
+  z-index:5000;
+  box-sizing: border-box;
+  padding: 10px;">
+  
+  <div style="
+    background:#ffffff;
+    padding:20px;
+    border-radius:12px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.15);
+    max-width:420px;
+    width:95%;
+    box-sizing:border-box;
+    max-height:85vh;
+    overflow-y:auto;
+    overflow-x:hidden;
+    position:relative;">
+    
+    <h2 style="text-align:center; margin-top:0; font-size: max(18px, 1.8vw); color: #333;">Juara 4 Bulanan</h2>
+    <button onclick="closeJuara4Bulanan()" style="
+      position:absolute; top:12px; right:12px; 
+      background:none; border:none; font-size:20px; cursor:pointer; padding: 0;">✖️</button>
+
+    <!-- Filter dan Search -->
+    <div style="margin-bottom:15px; display:flex; gap:8px; flex-wrap:wrap; width: 100%; box-sizing: border-box;">
+      <select id="filterGelar4Bulanan" style="flex:1; min-width: 120px; padding:6px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
+        <option value="">Semua Gelar</option>
+        <option>Raja Petarung 👑</option>
+        <option>Pejuang Tangguh ⚔️</option>
+        <option>Penantang Hebat 💥</option>
+        <option>Sang Pengabdi 🛡️</option>
+        <option>Sang Bintang ✨</option>
+        <option>The Gentleman 🎩</option>
+        <option>Otak Jenius 🧠</option>
+        <option>Si Penembak Jitu 🎯</option>
+        <option>Sang Penantang 🗡️</option>
+      </select>
+      <input type="text" id="searchNama4Bulanan" placeholder="Cari nama..." style="flex:1.2; min-width: 120px; padding:6px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px; box-sizing: border-box;">
+    </div>
+
+    <!-- TABEL HASIL: Menggunakan struktur Flexbox modern agar elastis -->
+    <div style="width:100%; box-sizing:border-box; border: 1px solid #ddd; border-radius: 6px; overflow: hidden;">
+      
+      <!-- Baris Header (Pengganti <thead>) -->
+      <div style="display: flex; background:#f0f0f0; color:#333; font-weight: bold; font-size: 13px; padding: 8px 6px; border-bottom: 1px solid #ddd;">
+        <div style="flex: 1.5; text-align: left; padding-left: 2px;">Nama</div>
+        <div style="flex: 2; text-align: left;">Gelar</div>
+        <div style="flex: 1; text-align: center;">Medali</div>
+      </div>
+      
+      <!-- Kontainer Utama Data (Pengganti <tbody>) -->
+      <div id="tabelJuara4Bulanan" style="display: flex; flex-direction: column; width: 100%;">
+        <!-- Baris hasil diisi lewat JavaScript -->
+      </div>
+
+    </div>
+    
+  </div>
+</div>
+
+<!-- Modal Juara Tahun -->
+<div id="juaraTahunanModal" style="
+  display:none; 
+  position:fixed; 
+  top:0; left:0; width:100%; height:100%; 
+  background: rgba(0,0,0,0.6); 
+  justify-content:center; align-items:center;
+  z-index:5000;
+  box-sizing: border-box;
+  padding: 10px;">
+  
+  <div style="
+    background:#ffffff;
+    padding:20px;
+    border-radius:12px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.15);
+    max-width:420px;
+    width:95%;
+    box-sizing:border-box;
+    max-height:85vh;
+    overflow-y:auto;
+    overflow-x:hidden;
+    position:relative;">
+    
+    <h2 style="text-align:center; margin-top:0; font-size: max(18px, 1.8vw); color: #333;">Juara Tahunan</h2>
+    <button onclick="closeJuaraTahunan()" style="
+      position:absolute; top:12px; right:12px; 
+      background:none; border:none; font-size:20px; cursor:pointer; padding: 0;">✖️</button>
+
+    <!-- Filter dan Search -->
+    <div style="margin-bottom:15px; display:flex; gap:8px; flex-wrap:wrap; width: 100%; box-sizing: border-box;">
+      <select id="filterGelarTahunan" style="flex:1; min-width: 120px; padding:6px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px;">
+        <option value="">Semua Gelar</option>
+        <option>Raja Petarung 👑</option>
+        <option>Pejuang Tangguh ⚔️</option>
+        <option>Penantang Hebat 💥</option>
+        <option>Sang Pengabdi 🛡️</option>
+        <option>Sang Bintang ✨</option>
+        <option>The Gentleman 🎩</option>
+        <option>Otak Jenius 🧠</option>
+        <option>Si Penembak Jitu 🎯</option>
+        <option>Sang Penantang 🗡️</option>
+      </select>
+      <input type="text" id="searchNamaTahunan" placeholder="Cari nama..." style="flex:1.2; min-width: 120px; padding:6px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px; box-sizing: border-box;">
+    </div>
+
+    <!-- TABEL HASIL: Menggunakan struktur Flexbox modern agar elastis -->
+    <div style="width:100%; box-sizing:border-box; border: 1px solid #ddd; border-radius: 6px; overflow: hidden;">
+      
+      <!-- Baris Header (Pengganti <thead>) -->
+      <div style="display: flex; background:#f0f0f0; color:#333; font-weight: bold; font-size: 13px; padding: 8px 6px; border-bottom: 1px solid #ddd;">
+        <div style="flex: 1.5; text-align: left; padding-left: 2px;">Nama</div>
+        <div style="flex: 2; text-align: left;">Gelar</div>
+        <div style="flex: 1; text-align: center;">Medali</div>
+      </div>
+      
+      <!-- Kontainer Utama Data (Pengganti <tbody>) -->
+      <div id="tabelJuaraTahunan" style="display: flex; flex-direction: column; width: 100%;">
+        <!-- Baris hasil diisi lewat JavaScript -->
+      </div>
+
+    </div>
+    
+  </div>
+</div>
+
+<!-- Modal Narasi Heroik Panjang -->
+<div id="narasiModal" style="
+  display:none;
+  position:fixed;
+  top:0; left:0; width:100%; height:100%;
+  background: rgba(0,0,0,0.8);
+  justify-content:center; align-items:center;
+  z-index:10000;
+  overflow:auto;
+  padding:20px;
+">
+  <div style="
+    background:#fff;
+    padding:20px 30px;
+    border-radius:12px;
+    max-width:600px;
+    max-height:90vh;
+    text-align:left;
+    overflow-y:auto;
+    animation: popIn 0.3s ease;
+    box-shadow:0 4px 20px rgba(0,0,0,0.3);
+    position:relative;
+  ">
+    <h3 id="narasiText" style="margin:0; font-size:18px; line-height:1.5;"></h3>
+    <button onclick="document.getElementById('narasiModal').style.display='none'" 
+      style="
+        margin-top:15px; padding:8px 16px; font-size:16px; cursor:pointer;
+        background:#3498db; color:#fff; border:none; border-radius:8px;
+      ">
+      Tutup
+    </button>
+  </div>
+</div>
+
+<!-- Modal Medali -->
+<div id="medaliModal" style="
+  display:none; 
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.4); 
+  z-index:9999; 
+  justify-content:center; align-items:center;
+  animation: fadeIn 0.3s ease;
+">
+  <div style="
+    background:#ffffff;
+    padding:24px;
+    border-radius:16px;
+    box-shadow:0 8px 30px rgba(0,0,0,0.2);
+    max-width:480px;
+    width:90%;
+    box-sizing:border-box;
+    position:relative;
+    color:#333333;
+    font-family:'Arial', sans-serif;
+    transform: scale(0.8);
+    animation: scaleIn 0.3s forwards;
+    max-height:85vh;            /* 🔹 Batas tinggi modal */
+    display:flex;
+    flex-direction:column;
+  ">
+<h2 style="margin-top:0; font-size:24px; text-align:center;">
+  <span onclick="prosesBukaGameZtype()" style="cursor:pointer; text-decoration:none;">
+    🧝‍♂️
+  </span> Gelar
+  <!-- Ikon Bola Gelinding (Buka di Tab Baru) -->
+  <a href="https://komunitasbooking.github.io/gelinding-bola/" target="_blank" rel="noopener noreferrer" style="text-decoration: none; font-size: 22px; cursor: pointer;" title="Gelinding Bola">
+    ⚽
+  </a>
+
+  <!-- Ikon Bel Spin Hadiah (Buka di Tab Baru) -->
+  <a href="https://komunitasbooking.github.io/spin-hadiah/" target="_blank" rel="noopener noreferrer" style="text-decoration: none; font-size: 22px; cursor: pointer;" title="Spin Hadiah">
+    ⏹️
+  </a>
+</h2>
+
+
+        <!-- Tombol-spin roda privilege -->
+    <a href="https://komunitasbooking.github.io/privilage/" target="_blank" style="
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background:linear-gradient(135deg,#9b59b6,#8e44ad);
+      color:white;
+      font-weight:bold;
+      text-decoration:none;
+      padding:10px 10px;
+      border-radius:12px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.25);
+      transition: all 0.2s ease;
+      width:100%;
+      box-sizing:border-box;
+      margin-bottom: 10px;
+      font-size: clamp(13px, 3.5vw, 16px); /* Font menyusut */
+    ">
+      🎡 Spin Privilege
+    </a>
+
+    <!-- Tombol-tombol Berjejer -->
+    <div style="
+      text-align:center; 
+      display:flex; 
+      flex-wrap:nowrap; /* 🔥 Kunci agar tidak turun ke bawah */
+      justify-content:center; 
+      gap:6px; 
+      width:100%;
+    ">
+      <!-- Tombol Leaderboard -->
+      <button id="btnLeaderboard" onclick="klikLeaderboard(this)" style="
+        flex: 1; /* 🔥 Berbagi ruang secara adil */
+        background:#f1c40f; color:#fff; border:none;
+        padding:10px 2px; border-radius:8px;
+        font-weight:bold; cursor:pointer;
+        box-shadow:0 4px 10px rgba(0,0,0,0.2);
+        font-size: clamp(11px, 3vw, 14px); /* Font menyusut */
+        white-space: nowrap; /* 🔥 Teks tetap satu baris */
+      ">
+      📈 Leader
+      </button>
+
+      <!-- Tombol Raport -->
+      <a href="https://komunitasbooking.github.io/raport/" target="_blank" style="
+        flex: 1;
+        display:inline-flex;
+        justify-content:center;
+        align-items:center;
+        background:#3498db;
+        color:white;
+        font-weight:bold;
+        text-decoration:none;
+        padding:10px 2px;
+        border-radius:8px;
+        box-shadow:0 4px 10px rgba(0,0,0,0.2);
+        font-size: clamp(11px, 3vw, 14px);
+        white-space: nowrap;
+        transition: all 0.2s ease;
+      "
+      onmouseover="this.style.background='#2980b9'"
+      onmouseout="this.style.background='#3498db'">
+        📊 Raport
+      </a>
+
+      <!-- Tombol Mining -->
+      <a href="https://komunitasbooking.github.io/mining/" target="_blank" style="
+        flex: 1;
+        display:inline-flex;
+        justify-content:center;
+        align-items:center;
+        background:#2ecc71;
+        color:white;
+        font-weight:bold;
+        text-decoration:none;
+        padding:10px 2px;
+        border-radius:8px;
+        box-shadow:0 4px 10px rgba(0,0,0,0.2);
+        font-size: clamp(11px, 3vw, 14px);
+        white-space: nowrap;
+        transition: all 0.2s ease;
+      " 
+      onmouseover="this.style.background='#27ae60'" 
+      onmouseout="this.style.background='#2ecc71'">
+        ⚒️ Mining
+      </a>
+    </div>
+
+    <!-- Kontainer scrollable -->
+    <div style="
+      flex:1;
+      overflow-y:auto;           /* 🔹 Scroll aktif */
+      margin-top:20px;
+      padding-right:8px;
+      max-height:60vh;           /* 🔹 Supaya tidak melebihi layar */
+    ">
+      <div id="gelarList" style="
+        display:grid; 
+        grid-template-columns:1fr 1fr; 
+        gap:12px;
+      ">
+        <!-- Kartu gelar akan masuk di sini -->
+      </div>
+    </div>
+
+    <!-- Progress bar dan total -->
+    <div style="margin-top:20px;">
+      <b>Total jenis gelar dimiliki:</b>
+      <span id="totalGelar" style="color:#ffd700"></span>
+      <div style="background:#eee; border-radius:12px; overflow:hidden; margin-top:6px; height:16px;">
+        <div id="progressGelar" style="height:100%; width:0%; background:#ffd700; transition: width 0.5s;"></div>
+      </div>
+    </div>
+
+    <!-- Tombol Tutup -->
+    <button onclick="closeMedali()" style="
+      position:absolute;
+      top:16px; right:16px;
+      background:#e74c3c;
+      color:white;
+      border:none;
+      padding:8px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-size:16px;
+      font-weight:bold;
+      box-shadow:0 2px 6px rgba(0,0,0,0.2);
+    ">✖</button>
+  </div>
+</div>
+
+<style>
+  /* Animasi modal */
+  @keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
+  @keyframes scaleIn { from {transform: scale(0.8);} to {transform: scale(1);} }
+  @keyframes popIn { from { transform: scale(0.5); opacity:0; } to { transform: scale(1); opacity:1; } }
+
+  /* Kartu Gelar */
+  .cardGelar {
+    background:#f9f9f9;
+    border:1px solid #ddd;
+    border-radius:12px;
+    padding:12px;
+    text-align:center;
+    position:relative;
+    font-weight:bold;
+    cursor:pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .cardGelar:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow:0 6px 15px rgba(0,0,0,0.15);
+  }
+
+  /* Badge di kartu */
+  .badge {
+    position:absolute;
+    top:-8px;
+    right:-8px;
+    background:#ffd700;
+    color:#333;
+    border-radius:50%;
+    width:28px;
+    height:28px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-weight:bold;
+    box-shadow:0 2px 6px rgba(0,0,0,0.15);
+  }
+</style>
+
+<!-- Klaim Menit Modal Gamer Style - Fix input width -->
+<div id="klaimModal" style="
+  display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.7); justify-content:center; align-items:center; z-index:9999;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+
+  <div style="
+    background:#1e1e2f; color:#f0f0f0; padding:20px; border-radius:14px; width:350px;
+    max-height:90vh; overflow-y:auto;
+    box-shadow:0 0 15px #00ffccaa; animation:fadeIn 0.3s ease;
+    box-sizing: border-box;">
+    
+    <h3 style="margin-top:0; text-align:center; color:#00ffcc;">💰 Klaim Menit</h3>
+
+    <label style="display:block; margin-top:12px;">🎯 Nominal Klaim (menit):</label>
+    <input type="number" id="klaimNominal" style="
+      width:100%; padding:10px; margin-top:6px; margin-bottom:12px;
+      border-radius:8px; border:1px solid #00ffcc;
+      background:#2c2c3e; color:#fff; outline:none;
+      box-sizing: border-box;">
+
+    <label style="display:block;">👤 Nama yang Ditagih:</label>
+    <input type="text" id="klaimNama" style="
+      width:100%; padding:10px; margin-top:6px; margin-bottom:12px;
+      border-radius:8px; border:1px solid #00ffcc;
+      background:#2c2c3e; color:#fff; outline:none;
+      box-sizing: border-box;">
+
+    <label style="display:block;">📝 Keterangan:</label>
+    <input type="text" id="klaimKet" style="
+      width:100%; padding:10px; margin-top:6px; margin-bottom:12px;
+      border-radius:8px; border:1px solid #00ffcc;
+      background:#2c2c3e; color:#fff; outline:none;
+      box-sizing: border-box;">
+
+    <div style="text-align:center; margin-top: 16px;">
+    <button id="btnKlaim" onclick="submitKlaim()" style="
+      background:#00ffcc; color:#000; border:none;
+      padding:10px 20px; margin-right:8px;
+      border-radius:8px; cursor:pointer;
+      font-weight:bold; box-shadow: 0 0 8px #00ffcc;
+      transition: 0.2s;
+    " onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+      🚀 Ajukan
+    </button>
+
+      <button onclick="closeKlaimModal()" style="
+        background:#ff4d4d; color:white; border:none;
+        padding:10px 20px;
+        border-radius:8px; cursor:pointer;
+        font-weight:bold;">
+        ❌ Tutup
+      </button>
+    </div>
+
+    <hr style="margin:20px 0; border:0; border-top:1px solid #444;">
+
+    <!-- Table Klaim -->
+    <h4 onclick="handleLoadKlaim()" 
+        style="text-align:center; margin-bottom:10px; color:#00ffcc; cursor:pointer;" 
+        title="Klik untuk refresh data">
+      📋 Riwayat Klaim 
+      <span id="loadingStatus" style="font-size:12px; color:#fff; display:none;">
+        (Memproses...)
+      </span>
+    </h4>
+
+    <!-- PERBAIKAN: Mengganti struktur table kaku menjadi flexbox yang fleksibel & pas di lebar 310px -->
+    <div style="max-height:220px; overflow-y:auto; width:100%; box-sizing: border-box;">
+      
+      <!-- Baris Header (Pengganti <thead>) - PERBAIKAN SEJAJAR KANAN KIRI -->
+      <div style="display: flex; background:#dfeffc; color:#000; font-weight: bold; font-size: 12px; padding: 6px 4px; border-radius: 4px; margin-bottom: 6px; width: 100%; box-sizing: border-box;">
+        <div style="flex: 1.8; text-align: center; padding-left: 4px;">Pengaju</div>
+        <div style="flex: 1.2; text-align: center;">Nominal</div>
+        <div style="flex: 2.2; text-align: center;">Ket</div>
+        <div style="flex: 1.2; text-align: center;">Status</div>
+      </div>
+
+      <!-- Kontainer Utama Data (Pengganti <tbody>) -->
+      <div id="klaimList" style="display: flex; flex-direction: column; gap: 4px; width: 100%;">
+        <!-- Baris klaim diisi lewat JavaScript -->
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+
+ <!-- ---------------- Modal Input Lomba Lengkap ---------------- -->
+<div id="modalLomba" style="
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  justify-content: center; align-items: center;
+  z-index: 99;
+">
+  <div style="
+    background: white;
+    padding: 18px;
+    border-radius: 12px;
+    text-align: left;
+    width: 360px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+    animation: popIn 0.22s ease;
+  ">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+      <h3 style="margin:0; font-size:18px;">🏆 Laporan Hasil Lomba</h3>
+      <button onclick="closeModalLomba()" style="all:unset; cursor:pointer; font-size:18px;">✖</button>
+    </div>
+
+    <p id="namaPemainLomba" style="margin:8px 0 12px; color:#333;">Pemain: <b>Guest</b></p>
+
+    <!-- Game -->
+    <label for="gameInput" style="font-size:13px; color:#555;">Game yang dimainkan</label>
+    <input id="gameInput" type="text" placeholder="Contoh: PES, ML, FF, FIFA..." style="
+      width:100%;
+      padding:8px 10px;
+      margin-top:6px;
+      margin-bottom:10px;
+      border-radius:8px;
+      border:1px solid #ddd;
+      box-sizing:border-box;
+      font-size:14px;
+    ">
+
+    <!-- Skor / Kill -->
+    <div style="display:flex; gap:8px; margin-bottom:10px;">
+      <div style="flex:1;">
+        <label style="font-size:13px; color:#555;">Skor/Kill Anda</label>
+        <input id="scoreYou" type="number" min="0" value="" placeholder="0" style="
+          width: 100%;
+          padding: 8px 10px;
+          margin-top: 6px;
+          border-radius: 8px;
+          border: 1px solid #ddd;
+          font-size: 14px;
+          box-sizing: border-box;  /* Tambahkan ini */
+        ">
+      </div>
+      <div style="flex:1;">
+        <label style="font-size:13px; color:#555;">Skor/Kill Lawan</label>
+        <input id="scoreOpp" type="number" min="0" value="" placeholder="0" style="
+          width: 100%;
+          padding: 8px 10px;
+          margin-top: 6px;
+          border-radius: 8px;
+          border: 1px solid #ddd;
+          font-size: 14px;
+          box-sizing: border-box; /* Tambahkan ini */
+        ">
+      </div>
+    </div>
+
+    <!-- Optional note -->
+    <label for="noteInput" style="font-size:13px; color:#555;">Keterangan (opsional)</label>
+    <input id="noteInput" type="text" placeholder="contoh: final meja 3, lawan: Rian" style="
+      width:100%; padding:8px 10px; margin-top:6px; margin-bottom:12px; border-radius:8px; border:1px solid #eee; font-size:14px;
+    ">
+
+    <!-- Pilihan hasil (radio buttons) -->
+    <div style="margin-bottom: 16px;">
+      <label style="font-size:14px; font-weight:600; color:#333; margin-bottom:6px; display:block;">Hasil pertandingan:</label>
+      <label style="margin-right:12px; cursor:pointer;">
+        <input type="radio" name="hasilLomba" value="Menang" style="margin-right:4px;"> ✅ Menang
+      </label>
+      <label style="margin-right:12px; cursor:pointer;">
+        <input type="radio" name="hasilLomba" value="Seri" style="margin-right:4px;"> 🤝 Seri
+      </label>
+      <label style="cursor:pointer;">
+        <input type="radio" name="hasilLomba" value="Kalah" style="margin-right:4px;"> ❌ Kalah
+      </label>
+    </div>
+
+    <!-- Tombol Kirim -->
+<button id="btnKirim" 
+      onclick="this.disabled=true; this.textContent='⏳ Tunggu / Load Ulang'; submitLaporan();" 
+      style="
+        width: 100%;
+        background:#3498db; color:#fff; padding:12px; border-radius:10px; border:none; font-weight:600; cursor:pointer;
+        transition: 0.2s;
+      " 
+      onmouseover="this.style.transform='scale(1.03)'" 
+      onmouseout="this.style.transform='scale(1)'">
+      📤 Kirim
+    </button>
+
+  </div>
+</div>
+
+<style>
+@keyframes popIn { from { transform: scale(0.95); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+</style>
+
+<!-- Riwayat tampil di sini -->
+<div id="RiwayatSaldo" style="max-height: 300px; overflow-y: auto; font-size: 14px;"></div>
+
+<!-- Modal Riwayat Saldo Responsif HP -->
+<div id="modalRiwayat" style="
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  justify-content: center;
+  align-items: center;
+">
+  <div style="
+    background-color: white;
+    /* PERBAIKAN: Padding diperkecil dari 20px ke 12px agar menghemat ruang horizontal HP */
+    padding: 15px 12px; 
+    border-radius: 10px;
+    width: 92%;
+    max-width: 500px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    position: relative;
+    box-sizing: border-box;
+  ">
+    <span onclick="tutupModalRiwayat()" style="
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      cursor: pointer;
+      font-size: 22px;
+      font-weight: bold;
+      color: #e74c3c;
+      z-index: 10;
+    ">&times;</span>
+
+    <h3 style="text-align:center; margin-top: 5px; margin-bottom: 15px; font-size: 16px;">📋 Riwayat Saldo</h3>
+    <div id="loadingRiwayat" style="text-align:center; display:none;">
+      <div class="loader-spinner"></div>
+      <p style="font-size:13px; color:gray;">Sedang memuat...</p>
+    </div>
+    <div id="isiRiwayatSaldo" style="width: 100%;"></div>
+  </div>
+</div>
+
+<!-- Modal rekomendasi dari pendaftaran baru -->
+<div id="modalRekomendasi" style="
+  display:none;
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.5);
+  z-index:9999;
+  align-items:center; justify-content:center;
+">
+  <div style="
+    background:#fff; border-radius:14px; padding:24px;
+    max-width:360px; width:90%; text-align:center;
+    box-shadow:0 10px 30px rgba(0,0,0,0.2);
+  ">
+    <h3 style="margin-top:0;">🔔 Permintaan Rekomendasi</h3>
+    <div id="daftarPendingRekomendasi"><!-- diisi JS --></div>
+    <button onclick="tutupModalRekomendasi()" style="
+      margin-top:16px; padding:8px 16px; border:none; background:#eee; border-radius:8px;
+    ">Tutup</button>
+  </div>
+</div>
+
+<!-- Modal ultah selamat ulang tahun -->
+<div id="ultahModal" style="
+  display:none;
+  position:fixed; top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.6);
+  justify-content:center; align-items:center;
+  z-index:9999;">
+
+  <div style="background:white; padding:20px; border-radius:12px; width:380px; text-align:center;">
+    <h2>🎂 Selamat Ulang Tahun!</h2>
+    <p>Pilih salah satu kartu hadiah saldo 🎁</p>
+    
+    <div style="display:flex; gap:10px; justify-content:center; margin-top:16px;">
+      <div class="cardUltah" onclick="openCard(this)">
+        <div class="card-inner">
+          <div class="card-front">🎁</div>
+          <div class="card-back"></div>
+        </div>
+      </div>
+      <div class="cardUltah" onclick="openCard(this)">
+        <div class="card-inner">
+          <div class="card-front">🎁</div>
+          <div class="card-back"></div>
+        </div>
+      </div>
+      <div class="cardUltah" onclick="openCard(this)">
+        <div class="card-inner">
+          <div class="card-front">🎁</div>
+          <div class="card-back"></div>
+        </div>
+      </div>
+    </div>
+    
+    <p id="ultahNote" style="margin-top:15px; font-size:13px; color:#666;"></p>
+    
+    <button onclick="closeUltah()" style="
+      margin-top:20px; padding:10px 16px; border:none;
+      border-radius:8px; background:#3498db; color:white; font-weight:600; cursor:pointer;">
+      Tutup
+    </button>
+  </div>
+</div>
+
+<style>
+.cardUltah {
+  width:80px; height:110px;
+  perspective:1000px;
+  cursor:pointer;
+}
+.card-inner {
+  width:100%; height:100%;
+  position:relative;
+  transform-style:preserve-3d;
+  transition:transform 0.6s;
+}
+.cardUltah.revealed .card-inner {
+  transform:rotateY(180deg);
+}
+.card-front, .card-back {
+  position:absolute;
+  width:100%; height:100%;
+  backface-visibility:hidden;
+  display:flex;
+  align-items:center; justify-content:center;
+  border-radius:10px;
+  font-weight:bold;
+}
+.card-front {
+  background:#eee;
+  font-size:30px;
+}
+.card-back {
+  background:#fff3cd;
+  transform:rotateY(180deg);
+  display:flex;
+  flex-direction:column;   /* ✅ ikon di atas angka */
+  justify-content:center;
+  align-items:center;
+  gap:4px;                 /* ✅ jarak antara ikon dan angka */
+  text-align:center;
+}
+
+.card-back .icon {
+  font-size:22px;
+}
+.card-back .nilai {
+  font-size:16px;
+  font-weight:bold;
+}
+
+.cardUltah.dipilih {
+  border: 3px solid #2ecc71;   /* hijau */
+  border-radius: 12px;
+  box-shadow: 0 0 12px rgba(46, 204, 113, 0.6);
+  position: relative;
+}
+
+.cardUltah.dipilih::after {
+  content: "✅ Dipilih";
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  font-weight: bold;
+  color: #2ecc71;
+}
+
+</style>
+
+<!-- Kontainer tersembunyi untuk memuat game ZType di dalam aplikasi -->
+<div id="containerGameZtype" style="
+  display:none; 
+  position:fixed; 
+  inset:0; 
+  background:#000; 
+  z-index:9998; 
+  flex-direction:column;
+">
+  <!-- Tombol untuk menutup game secara manual jika user ingin kembali ke menu utama -->
+  <button onclick="tutupGameZtype()" style="
+    position:absolute; 
+    top:15px; 
+    right:15px; 
+    background:rgba(255,255,255,0.2); 
+    color:white; 
+    border:none; 
+    padding:8px 16px; 
+    border-radius:8px; 
+    cursor:pointer; 
+    font-weight:bold;
+    backdrop-filter:blur(5px);
+  ">
+    ❌ Tutup Game
+  </button>
+  <!-- Bingkai tempat game dijalankan -->
+  <iframe id="frameGameZtype" src="" style="width:100%; height:100%; border:none;"></iframe>
+</div>
+<script>
+  // Definisikan variabel global di bagian paling atas skrip untuk melacak jendela game
+  var jendelaGameZtype = null;
+
+  // 1. Fungsi Membuka Game dengan Metode Jendela Terkontrol
+  function prosesBukaGameZtype() {
+    console.log("1. Ikon diklik, fungsi lokal di loader.html berjalan.");
+    var namaUser = "";
+    
+    try {
+      if (typeof getNamaUser === 'function') {
+        namaUser = getNamaUser();
+      } else if (typeof SESSION_USER !== 'undefined' && SESSION_USER.nama) {
+        namaUser = SESSION_USER.nama;
+      } else if (typeof user !== 'undefined' && user.nama) {
+        namaUser = user.nama;
+      }
+    } catch(e) {
+      console.error("Gagal mengekstrak nama user:", e);
+    }
+
+    if (!namaUser) {
+      namaUser = prompt("Sistem gagal membaca sesi Anda. Silakan masukkan nama Anda:");
+      if (!namaUser) return;
+    }
+
+    console.log("3. Menghubungi server Apps Script untuk mencocokkan nama:", namaUser);
+    
+    gsRun
+      .withSuccessHandler(function(booking) {
+        console.log("4. Respon server sukses! Data booking ditemukan:", booking);
+        
+        if (booking && typeof booking === 'object' && booking.mulai) {
+          
+          // SINKRONISASI: Simpan data ke localStorage
+          localStorage.setItem("bookingMulai", booking.mulai.toString());
+          localStorage.setItem("bookingDurasi", booking.durasi.toString());
+          
+          // Aktifkan hitung mundur
+          mulaiCountdownBooking();
+          
+          // PERBAIKAN: Buka ZType sebagai Jendela Pop-up Terkontrol (Bukan Iframe, Bebas Error SameOrigin)
+          // Mengatur posisi pop-up di tengah layar pengguna
+          var lebar = 1000;
+          var tinggi = 700;
+          var kiri = (screen.width - lebar) / 2;
+          var atas = (screen.height - tinggi) / 2;
+          
+          jendelaGameZtype = window.open(
+            "https://ztype.com", 
+            "ZTypeGame", 
+            "width=" + lebar + ",height=" + tinggi + ",top=" + atas + ",left=" + kiri + ",resizable=yes,scrollbars=yes"
+          );
+          
+        } else {
+          alert("⛔ Kamu belum punya booking aktif saat ini.\nSilakan booking terlebih dahulu.");
+        }
+      })
+      .withFailureHandler(function(error) {
+        console.error("4. Respon server gagal/error:", error);
+        alert("❌ Gagal mengecek booking. Coba lagi.");
+      })
+      .cekBookingAktif(namaUser);
+  }
+
+  // 2. Fungsi Countdown Yang Sudah Disinkronkan
+  function mulaiCountdownBooking() {
+    const mulaiMs   = parseInt(localStorage.getItem("bookingMulai") || "0");
+    const durasi    = parseInt(localStorage.getItem("bookingDurasi") || "0");
+    const selesaiMs = mulaiMs + durasi * 60 * 1000;
+
+    if (!mulaiMs || !durasi) return;
+    
+    console.log("⏳ Countdown diaktifkan. Sesi berakhir pada:", new Date(selesaiMs).toLocaleTimeString());
+
+    const interval = setInterval(() => {
+      const sisaMs = selesaiMs - Date.now();
+
+      if (sisaMs <= 0) {
+        clearInterval(interval);
+
+        // PERBAIKAN: Tutup paksa jendela game ZType secara otomatis dari jarak jauh
+        if (jendelaGameZtype && !jendelaGameZtype.closed) {
+          jendelaGameZtype.close();
+          console.log("🛑 Jendela Game ZType berhasil ditutup paksa oleh sistem.");
+        }
+
+        // Hapus token sesi dari penyimpanan lokal browser
+        localStorage.removeItem("chat_token");
+        localStorage.removeItem("chat_nama");
+        localStorage.removeItem("bookingMulai");
+        localStorage.removeItem("bookingDurasi");
+
+        // Blokir layar tampilan aplikasi secara total
+        document.body.innerHTML = `
+        <div style="
+          position:fixed;inset:0;
+          background:#0b141a;
+          display:flex;
+          flex-direction:column;
+          align-items:center;
+          justify-content:center;
+          gap:18px;
+          color:white;
+          font-family:Arial;
+          text-align:center;
+          padding:20px;
+          box-sizing:border-box;
+          z-index:9999;
+        ">
+          <div style="font-size:60px">⏰</div>
+          <div style="font-size:24px;font-weight:bold">Waktu Booking Habis</div>
+          <div style="opacity:.8;font-size:14px;max-width:300px;line-height:1.6">
+            Sesi kamu sudah berakhir. Silakan booking ulang untuk masuk kembali.
+          </div>
+          <button
+            id="btnKembaliLogin"
+            style="
+              border:none;
+              background:linear-gradient(135deg,#00a884,#00c896);
+              color:white;
+              padding:14px 24px;
+              border-radius:14px;
+              cursor:pointer;
+              font-size:15px;
+              font-weight:bold;
+              width: fit-content;    /* PERBAIKAN: Lebar pas seukuran konten teks */
+              align-self: center;   /* PERBAIKAN: Mencegah tombol meregang lebar */
+            "
+          >
+            🔑 Kembali ke Login
+          </button>
+        </div>
+
+        `;
+
+        document.getElementById("btnKembaliLogin").onclick = function() {
+          window.open("https://komunitasbooking.github.io/booking/", "_top");
+        };
+      }
+    }, 1000); 
+  }
+
+  // AUTO-RUN: Otomatis jalankan countdown saat halaman web baru dibuka/direfresh
+  document.addEventListener("DOMContentLoaded", function() {
+    mulaiCountdownBooking();
+  });
+
+</script>
 <script>
 let user = null;
 let waktuSisa = 0;
