@@ -8269,13 +8269,21 @@ function closeModalLomba() {
 }
 </script>
 
-    <script>
-        // Mendaftarkan File Service Worker Resmi
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-            .then(() => console.log("Service Worker Terdaftar!"))
-            .catch(err => console.log("Gagal:", err));
+<script>
+// Mendaftarkan File Service Worker Resmi
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'activated') {
+          console.log('✅ Versi baru aktif, reload otomatis...');
+          window.location.reload();
         }
-    </script>
+      });
+    });
+  });
+}
+</script>
 </body>
 </html>
