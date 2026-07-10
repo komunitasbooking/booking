@@ -815,12 +815,634 @@ function handleLoginSuccess(response) {
 
 
 <script>
-  // PASTE: isi lengkap file "Klaim" (submitKlaim, loadKlaim, prosesKlaimClient, dst)
+
+function openKlaimModal(){
+  document.getElementById('klaimModal').style.display='flex';
+}
+function closeKlaimModal(){
+  document.getElementById('klaimModal').style.display='none';
+}
+let klaimSedangDiproses = false; // 🔐 flag global
+
+function submitKlaim() {
+  const btn = document.getElementById('btnKlaim');
+
+  // 🚫 Cegah double klik
+  if (klaimSedangDiproses) {
+    alert("⏳ Klaim sedang diproses, tunggu sebentar...");
+    return;
+  }
+  klaimSedangDiproses = true;
+
+  // 🔹 Ambil nilai dari input
+  const nominal = 
+    (document.getElementById('klaimNominal')?.value || "").trim() || 
+    (document.getElementById('topupNominal')?.value || "").trim();
+
+  const namaInput = 
+    (document.getElementById('klaimNama')?.value || "").trim() || 
+    (document.getElementById('topupNama')?.value || "").trim();
+
+  const ket = 
+    (document.getElementById('klaimKet')?.value || "").trim() || 
+    (document.getElementById('topupKet')?.value || "").trim() || "-";
+
+  if (!nominal || isNaN(nominal) || Number(nominal) <= 0) {
+    alert('⚠ Nominal wajib diisi dengan angka yang valid!');
+    klaimSedangDiproses = false;
+    return;
+  }
+
+  if (!namaInput) {
+    alert('⚠ Nama yang ditagih wajib diisi!');
+    klaimSedangDiproses = false;
+    return;
+  }
+
+  const namaTagih = namaInput.toLowerCase();
+  const namaLogin = (SESSION_USER.nama || "").trim().toLowerCase();
+
+  if (namaTagih === namaLogin) {
+    alert('🚫 Tidak bisa menagih diri sendiri!');
+    klaimSedangDiproses = false;
+    return;
+  }
+
+  // 🔧 Fungsi reset tombol
+  function resetBtn(){
+    klaimSedangDiproses = false;
+    if(btn){
+      btn.textContent = "🚀 Ajukan";
+      btn.disabled = false;
+      btn.style.opacity = "1";
+      btn.style.cursor = "pointer";
+    }
+  }
+
+  // 🔒 Kunci tombol & Jalankan animasi
+  if (btn) {
+    btn.disabled = true;
+    btn.style.opacity = "0.6";
+    btn.style.cursor = "not-allowed";
+  }
+
+  let dots = 0;
+  const loadingAnim = setInterval(()=>{
+    if(!btn) return;
+    dots = (dots + 1) % 4;
+    btn.textContent = "🔍 Mengecek Nama" + ".".repeat(dots);
+  },400);
+
+  const timeoutGuard = setTimeout(()=>{
+    clearInterval(loadingAnim);
+    alert("⚠ Server lama merespon, silakan coba lagi.");
+    resetBtn();
+  },20000);
+
+  // 🔎 LANGKAH 1: Cek apakah nama terdaftar
+  gsRun
+    .withSuccessHandler(namaAda => {
+      if (!namaAda) {
+        clearInterval(loadingAnim);
+        clearTimeout(timeoutGuard);
+        alert(`❌ Nama "${namaInput}" tidak ditemukan! Periksa kembali ejaan nama.`);
+        resetBtn();
+        return;
+      }
+
+      // 🔎 LANGKAH 2: Jika nama ada, baru kirim klaim
+      btn.textContent = "⏳ Mengirim Klaim...";
+      gsRun
+        .withSuccessHandler(msg => {
+          clearInterval(loadingAnim);
+          clearTimeout(timeoutGuard);
+          alert(msg);
+          closeKlaimModal();
+          resetBtn();
+          if (typeof handleLoadKlaim === "function") handleLoadKlaim();
+        })
+        .withFailureHandler(err => {
+          clearInterval(loadingAnim);
+          clearTimeout(timeoutGuard);
+          alert('❌ Gagal mengirim: ' + err.message);
+          resetBtn();
+        })
+        .kirimKlaim(SESSION_USER.nama, namaInput, nominal, ket);
+    })
+    .withFailureHandler(err => {
+      clearInterval(loadingAnim);
+      clearTimeout(timeoutGuard);
+      alert('❌ Gagal verifikasi: ' + err.message);
+      resetBtn();
+    })
+    .cekNamaAda(namaInput); // Pastikan fungsi ini ada di .gs Anda
+}
+
+function prosesKlaim(rowIndex, setuju) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const shKlaim = ss.getSheetByName('KlaimSaldo');
+  const shSaldo = ss.getSheetByName('DataSaldo');
+
+  console.log("▶ prosesKlaim dipanggil", { rowIndex, setuju });
+
+  const klaim = shKlaim.getRange(rowIndex, 1, 1, 6).getValues()[0];
+  const [ts, namaPengaju, namaTertagih, nominalRaw, ket, statusRaw] = klaim;
+
+  const nominal = Number(nominalRaw) || 0;
+  const status = (statusRaw || '').toString().trim();
+
+  console.log("📄 Data klaim:", { ts, namaPengaju, namaTertagih, nominal, ket, status });
+
+  // Cek status klaim
+  if (status !== 'Menunggu') {
+    console.log("⚠ Klaim sudah diproses sebelumnya");
+    return '❌ Klaim sudah diproses sebelumnya';
+  }
+
+  // Jika ditolak
+  if (!setuju) {
+    shKlaim.getRange(rowIndex, 6).setValue('Ditolak');
+    console.log("❌ Klaim ditolak:", { rowIndex, namaPengaju, namaTertagih, nominal });
+    return '❌ Klaim ditolak';
+  }
+
+  // 🔹 Update saldo
+  const dataSaldo = shSaldo.getDataRange().getValues();
+  const colNama = 0;  // kolom Nama
+  const colSaldo = 2; // kolom Saldo
+
+  let rowPengaju = -1, rowTertagih = -1;
+  let saldoPengaju = 0, saldoTertagih = 0;
+
+  dataSaldo.forEach((row, i) => {
+    if (row[colNama] === namaPengaju) {
+      rowPengaju = i + 1;
+      saldoPengaju = Number(row[colSaldo]) || 0;
+    }
+    if (row[colNama] === namaTertagih) {
+      rowTertagih = i + 1;
+      saldoTertagih = Number(row[colSaldo]) || 0;
+    }
+  });
+
+  console.log("💰 Saldo sebelum update:", { rowPengaju, saldoPengaju, rowTertagih, saldoTertagih });
+
+  if (rowPengaju === -1 || rowTertagih === -1) {
+    console.log("❌ Nama tidak ditemukan di DataSaldo");
+    return '❌ Nama tidak ditemukan di DataSaldo';
+  }
+
+  if (saldoTertagih < nominal) {
+    console.log("❌ Saldo tertagih tidak cukup", { saldoTertagih, nominal });
+    return '❌ Saldo tidak cukup untuk diklaim';
+  }
+
+  // Update saldo
+  shSaldo.getRange(rowPengaju, colSaldo + 1).setValue(saldoPengaju + nominal);
+  shSaldo.getRange(rowTertagih, colSaldo + 1).setValue(saldoTertagih - nominal);
+  console.log("✅ Saldo berhasil diupdate");
+
+  // Update status klaim
+  shKlaim.getRange(rowIndex, 6).setValue('Disetujui');
+  console.log("✅ Status klaim diupdate menjadi Disetujui");
+
+  return `✅ Klaim ${nominal} menit disetujui`;
+}
+
+
+
+function loadKlaim() {
+  console.log('🔄 Memulai loadKlaim...');
+  const loading = document.getElementById("loadingStatus");
+  const sessionId = localStorage.getItem("sessionId");
+  
+  console.log("🔹 SessionId dari localStorage:", sessionId);
+
+  if (!sessionId) {
+    console.warn('❌ sessionId tidak ditemukan di localStorage.');
+    if (loading) loading.style.display = "none"; // Tutup jika gagal di awal
+    return;
+  }
+
+  // Ambil user berdasarkan sessionId
+  gsRun
+    .withSuccessHandler(user => {
+      console.log("🔹 Response getLoginUser:", user);
+
+      if (!user || !user.nama || !user.sessionId) {
+        console.warn('❌ User belum login atau session tidak valid.', user);
+        if (loading) loading.style.display = "none"; // Tutup jika session invalid
+        return;
+      }
+
+      // Simpan user global
+      SESSION_USER = user;
+      const namaUser = (SESSION_USER.nama || '').toLowerCase().trim();
+      console.log('✅ SESSION_USER tersimpan:', SESSION_USER);
+
+      // Update UI Poin
+      const poinEl = document.getElementById("poinPemain");
+      if (poinEl) poinEl.innerText = SESSION_USER.poin || 0;
+      const headerPoinEl = document.getElementById("poinUser");
+      if (headerPoinEl) headerPoinEl.textContent = SESSION_USER.poin || 0;
+
+      // Ambil data klaim khusus user ini dari server
+      gsRun
+        .withSuccessHandler(data => {
+          console.log('📦 Data klaim diterima:', data);
+
+          const tbody = document.getElementById('klaimList');
+          if (!tbody) {
+            console.warn("⚠️ Element #klaimList tidak ditemukan di DOM");
+            if (loading) loading.style.display = "none";
+            return;
+          }
+          
+          tbody.innerHTML = '';
+
+          // PERBAIKAN: Tampilan data kosong berbasis layout Flexbox murni
+          if (!Array.isArray(data) || data.length === 0) {
+            tbody.innerHTML = `
+              <div style="text-align: center; padding: 15px; color: #aaa; font-size: 13px; border: 1px dashed #444; border-radius: 4px; width: 100%; box-sizing: border-box;">
+                Tidak ada klaim
+              </div>
+            `;
+            console.warn('⚠️ Data klaim kosong.');
+            if (loading) loading.style.display = "none"; // Matikan loading
+            return;
+          }
+
+          let klaimAda = false;
+          data.forEach((item, index) => {
+            const pengaju = item.namaPengaju || '-';
+            const nominal = item.nominal || 0;
+            const keterangan = item.keterangan || '-';
+            const status = (item.status || '-').trim();
+            const rowIndexSheet = item.rowIndex;
+
+            // PERBAIKAN: Mengubah 'tr' kaku menjadi 'div' Flexbox elastis yang mengikuti batas layar
+            const divRow = document.createElement('div');
+            divRow.style.cssText = `
+              display: flex; 
+              align-items: center; 
+              background: #2c2c3e; 
+              padding: 8px 4px; 
+              font-size: 12px; 
+              color: #fff; 
+              border-bottom: 1px solid #3c3c4e;
+              margin-bottom: 4px;
+              width: 100%;
+              box-sizing: border-box;
+            `;
+
+            let aksiHTML = '';
+
+            if (status === 'Menunggu' && pengaju.toLowerCase() !== namaUser) {
+              aksiHTML = `
+                <div style="display: flex; gap: 4px; justify-content: center; align-items: center; width: 100%;">
+                  <button onclick="prosesKlaimClient(${rowIndexSheet}, true)" style="background:#00ffcc; border:none; cursor:pointer; font-size:11px; padding:4px 6px; border-radius:4px; color:#000; font-weight:bold;">✓</button>
+                  <button onclick="prosesKlaimClient(${rowIndexSheet}, false)" style="background:#ff4d4d; border:none; cursor:pointer; font-size:11px; padding:4px 6px; border-radius:4px; color:#fff; font-weight:bold;">✕</button>
+                </div>
+              `;
+            } else {
+              // Pewarnaan teks status akhir bergaya neon minimalis agar hemat ruang
+              const warnaTeks =
+                status === "Disetujui" ? "#00ffcc" :
+                status === "Ditolak" ? "#ff4d4d" :
+                "#ffe082"; // Menunggu
+              
+              const statusSingkat = status === "Disetujui" ? "Acc" : status === "Ditolak" ? "Batal" : "Tunggu";
+              aksiHTML = `<span style="color:${warnaTeks}; font-weight:bold; font-size: 11px;">${statusSingkat}</span>`;
+            }
+
+            // PERBAIKAN: Menyamakan porsi kolom (2 : 1.5 : 1.5 : 1.2) dengan header HTML & mengaktifkan word-break
+            divRow.innerHTML = `
+              <div style="flex: 2; word-break: break-word; padding-right: 4px; text-align: center;">${pengaju}</div>
+              <div style="flex: 1.5; word-break: break-word; padding-right: 4px; text-align: left;">${nominal}</div>
+              <div style="flex: 1.5; word-break: break-word; padding-right: 4px; text-align: left; font-size: 11px; color: #ccc;">${keterangan}</div>
+              <div style="flex: 1.2; text-align: center; display: flex; justify-content: center; align-items: center;">${aksiHTML}</div>
+            `;
+            
+            tbody.appendChild(divRow);
+            klaimAda = true;
+          });
+
+          // PERBAIKAN: Kondisi fallback data kosong
+          if (!klaimAda) {
+            tbody.innerHTML = `
+              <div style="text-align: center; padding: 15px; color: #aaa; font-size: 13px; border: 1px dashed #444; border-radius: 4px; width: 100%; box-sizing: border-box;">
+                Tidak ada klaim terkait
+              </div>
+            `;
+          }
+          
+          console.log('✅ Semua data berhasil dimuat.');
+          if (loading) loading.style.display = "none"; // ✅ MATIKAN LOADING DI SINI (SUKSES)
+        })
+        .withFailureHandler(err => {
+          console.error('❌ Gagal mengambil data klaim:', err);
+          alert("Gagal memuat data klaim");
+          if (loading) loading.style.display = "none"; // ✅ MATIKAN LOADING DI SINI (GAGAL)
+        })
+        .getListKlaimSaldo(namaUser);
+
+    })
+    .withFailureHandler(err => {
+      console.error('❌ Gagal mengambil data user session:', err);
+      if (loading) loading.style.display = "none"; // ✅ MATIKAN LOADING DI SINI (GAGAL)
+    })
+    .getLoginUser(sessionId);
+}
+
+// Fungsi yang dipanggil oleh tombol ✅ atau ❌
+function prosesKlaimSaldo(row, setuju) {
+  const loading = document.getElementById("loadingStatus");
+  if (loading) loading.style.display = "inline"; // Tampilkan loading saat proses
+
+  // Memanggil fungsi Google Script (gs)
+  gsRun
+    .withSuccessHandler(function(respon) {
+      alert(respon); // Beri notifikasi hasil
+      handleLoadKlaim(); // REFRESH DATA setelah sukses
+    })
+    .withFailureHandler(function(err) {
+      alert("Error: " + err.message);
+      if (loading) loading.style.display = "none";
+    })
+    .prosesKlaim(row, setuju); // Memanggil fungsi di .gs
+}
+
+function handleLoadKlaim() {
+  const loading = document.getElementById("loadingStatus");
+  if (loading) loading.style.display = "inline"; 
+  
+  // Pastikan loadKlaim memanggil google.script.run.getKlaimData() 
+  // dan success handlernya adalah tampilkanKeTabelKlaim
+  loadKlaim(); 
+}
+
+//----------------------------------------------------------------
+
+function prosesKlaimClient(rowIndex, setuju) {
+    const konfirmasi = confirm(setuju ? "Setujui klaim ini?" : "Tolak klaim ini?");
+    if (!konfirmasi) return;
+
+    console.log(`🚀 Memproses klaim untuk baris ${rowIndex}, setuju: ${setuju}`);
+    
+    gsRun
+      .withSuccessHandler(res => {
+        alert(res);
+        loadKlaim(); // refresh daftar setelah aksi
+      })
+      .withFailureHandler(err => {
+        console.error("❌ Gagal memproses klaim:", err);
+        alert("Gagal memproses klaim.");
+      })
+      .prosesKlaim(rowIndex, setuju);
+  }
+
+  // Pastikan fungsi ini global agar bisa dipanggil dari tombol
+  window.prosesKlaimClient = prosesKlaimClient;
+  
 </script>
 
 <script>
-  // PASTE: isi lengkap file "Booking Form" (cekBooking, submitBookingForm, cekSisaBooking)
+//jalankan tanggal agar tak bisa pilih kemarin
+document.addEventListener("DOMContentLoaded", function () {
+  const today = new Date();
+
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+
+  const tanggalEl = document.getElementById("tanggal");
+
+  tanggalEl.setAttribute("min", todayStr);
+  tanggalEl.value = todayStr;
+
+  updateJamMulai(); // 🔥 langsung aktifkan filter jam
+});
+
+//cegah jam sebelumnya dipilih user
+function updateJamMulai() {
+  const tanggalInput = document.getElementById("tanggal").value;
+  const jamInput = document.getElementById("jamMulai");
+
+  if (!tanggalInput) return;
+
+  const now = new Date();
+  const selectedDate = new Date(tanggalInput);
+
+  jamInput.min = "";
+
+  const isToday =
+    selectedDate.getFullYear() === now.getFullYear() &&
+    selectedDate.getMonth() === now.getMonth() &&
+    selectedDate.getDate() === now.getDate();
+
+  if (isToday) {
+    // 🔥 mundur 10 menit
+    const toleranceMs = 10 * 60 * 1000;
+    const batas = new Date(now.getTime() - toleranceMs);
+
+    let jam = batas.getHours();
+    let menit = batas.getMinutes();
+
+    const minTime =
+      String(jam).padStart(2, "0") + ":" +
+      String(menit).padStart(2, "0");
+
+    jamInput.min = minTime;
+
+    // tetap arahkan ke waktu sekarang (biar UX enak)
+    const nowJam =
+      String(now.getHours()).padStart(2, "0") + ":" +
+      String(now.getMinutes()).padStart(2, "0");
+
+    jamInput.value = nowJam;
+  }
+}
+
+function cekBooking() {
+  const loader = document.getElementById("loader");
+  if (loader) loader.style.display = "flex"; // Tampilkan loader
+
+  gsRun
+    .withSuccessHandler(data => {
+      if (loader) loader.style.display = "none"; // Sembunyikan loader setelah sukses
+      showBookingList(data);
+    })
+    .withFailureHandler(err => {
+      if (loader) loader.style.display = "none"; // 🔥 PENTING: Sembunyikan loader jika server error!
+      
+      console.error("❌ Gagal mengambil data booking dari server:", err);
+      
+      // Tampilkan pesan error ke user (opsional, ganti ID sesuai elemen hasil Anda jika ada)
+      const resultBox = document.getElementById("bookingResult");
+      if (resultBox) {
+        resultBox.innerText = "❌ Gagal memuat daftar: " + err.message;
+      } else {
+        alert("Gagal memuat daftar booking: " + err.message);
+      }
+    })
+    .getAllBooking();
+}
+
+
+function submitBookingForm() {
+  if (!user || !user.nama) {
+    alert("Silakan login terlebih dahulu sebelum booking.");
+    return;
+  }
+
+  const tanggalEl = document.getElementById("tanggal");
+  const jamEl = document.getElementById("jamMulai");
+  const durasiEl = document.getElementById("durasi");
+  const jenisEl = document.getElementById("jenis");
+
+  const tanggal = tanggalEl.value;
+  const jamMulai = jamEl.value;
+  const durasi = parseInt(durasiEl.value, 10);
+  const jenis = jenisEl.value;
+
+  const resultBox = document.getElementById("bookingResult");
+
+  if (!tanggal || !jamMulai || !durasi || !jenis) {
+    resultBox.innerText = "⚠️ Lengkapi semua data booking!";
+    return;
+  }
+
+  // ==============================
+  // 🔥 VALIDASI TANGGAL & JAM (PAKAI TOLERANSI)
+  // ==============================
+  const now = new Date();
+  now.setSeconds(0, 0);
+
+  const selectedDateTime = new Date(`${tanggal}T${jamMulai}`);
+
+  // 🔥 toleransi 10 menit
+  const toleranceMs = 10 * 60 * 1000;
+  const batasWaktu = new Date(now.getTime() - toleranceMs);
+
+  if (selectedDateTime < batasWaktu) {
+    resultBox.innerText = "❌ Waktu sudah terlalu lewat (lebih dari 10 menit)!";
+    return;
+  }
+
+  // ==============================
+  // 💰 HITUNG BIAYA
+  // ==============================
+  const harga = {
+    HP: 1,
+    PS2: 2,
+    PS3: 5,
+    PS4: 10
+  };
+
+  const biayaPerMenit = harga[jenis] || 1;
+  const totalBiaya = durasi * biayaPerMenit;
+
+  const btn = document.getElementById("btnBooking");
+
+  resultBox.innerText = "⏳ Mengecek saldo...";
+  btn.disabled = true;
+  btn.innerText = "⏳ Mengecek...";
+
+  // ==============================
+  // 🔹 CEK SALDO
+  // ==============================
+  gsRun
+    .withSuccessHandler(function(saldoTerbaru) {
+      user.saldo = saldoTerbaru;
+
+      const saldoEl = document.getElementById("saldoPemain");
+      if (saldoEl) saldoEl.innerText = user.saldo;
+
+      if (user.saldo < totalBiaya) {
+        resultBox.innerText = `❌ Saldo tidak cukup. Butuh ${totalBiaya} menit, saldo Anda ${user.saldo} menit.`;
+        btn.disabled = false;
+        btn.innerText = "🚀 Kirim Booking";
+        return;
+      }
+
+      resultBox.innerText = "⏳ Memproses booking...";
+      btn.innerText = "⏳ Memproses...";
+
+      const data = { nama: user.nama, tanggal, jamMulai, durasi, jenis };
+
+      gsRun
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          btn.innerText = "🚀 Kirim Booking";
+          resultBox.innerText = "✅ " + res;
+
+          // ==============================
+          // 🔥 RESET PINTAR (AUTO SEKARANG)
+          // ==============================
+          const now = new Date();
+
+          const yyyy = now.getFullYear();
+          const mm = String(now.getMonth() + 1).padStart(2, '0');
+          const dd = String(now.getDate()).padStart(2, '0');
+
+          const todayStr = `${yyyy}-${mm}-${dd}`;
+
+          tanggalEl.value = todayStr;
+
+          // 🔥 update jam (sudah include toleransi di fungsi kamu)
+          updateJamMulai();
+
+          durasiEl.value = "";
+          jenisEl.value = "HP";
+
+          cekBooking();
+
+          // 🔄 Refresh saldo
+          gsRun
+            .withSuccessHandler(function(saldoFinal) {
+              user.saldo = saldoFinal;
+              if (saldoEl) saldoEl.innerText = user.saldo;
+            })
+            .getSaldo(user.nama);
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.innerText = "🚀 Kirim Booking";
+          resultBox.innerText = "❌ " + err.message;
+        })
+        .submitBooking(data);
+    })
+    .withFailureHandler(function(err) {
+      btn.disabled = false;
+      btn.innerText = "🚀 Kirim Booking";
+      resultBox.innerText = "❌ Gagal cek saldo: " + err.message;
+    })
+    .getSaldo(user.nama);
+}
+
+function cekSisaBooking() {
+  if (!user || !user.nama) {
+    console.error("❌ Belum login atau user belum ter-set di user");
+    return;
+  }
+
+  const playerName = user.nama;
+
+  gsRun.withSuccessHandler(res => {
+    console.log("🧮 Sisa waktu booking:", res, "menit");
+    const el = document.getElementById("waktuBooking");
+    if (el) {
+      el.textContent = `${res} menit`;
+    } else {
+      console.warn("⚠️ Elemen 'waktuBooking' tidak ditemukan.");
+    }
+  }).getTotalDurasiBooking(playerName);
+}
+
 </script>
+    
     <script>
         // Mendaftarkan File Service Worker Resmi
         if ('serviceWorker' in navigator) {
