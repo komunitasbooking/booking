@@ -15,9 +15,812 @@
 </head>
 <body>
 
-    <!-- URL Aplikasi GAS Anda -->
-    <iframe src="https://script.google.com/macros/s/AKfycbyRVIJrx6z3nvRHFSd2V8KL_v_8g8FIZQS6yS7CGDuPQNEXmxE0KweAMkijpda8ydlbQQ/exec"></iframe>
+<script>
+let user = null;
+let waktuSisa = 0;
+let saldoTampilan = 0;
+let SESSION_USER = null; // ✅ Awalnya null
 
+//hilangkan log sementara agar tak terdeteksi publik
+//console.log = function() {};
+//console.info = function() {};
+//console.warn = function() {};
+//console.error = function() {};
+
+// ============================================
+// SHIM: pengganti google.script.run yang jalan lewat fetch()
+// ============================================
+var GAS_ENDPOINT = "https://bookingkomunitas.duckdns.org/booking-proxy";
+
+function makeGsRunShim(endpointUrl) {
+  function build(successHandler, failureHandler) {
+    return new Proxy({}, {
+      get(target, fnName) {
+        if (fnName === 'withSuccessHandler') {
+          return (fn) => build(fn, failureHandler);
+        }
+        if (fnName === 'withFailureHandler') {
+          return (fn) => build(successHandler, fn);
+        }
+        // Nama fungsi server (mis. .loginWithPin(...), .checkSessionValid(...))
+        return (...args) => {
+          fetch(endpointUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: fnName, args: args })
+          })
+            .then(res => res.json())
+            .then(result => {
+              if (result && result.__error) {
+              if (failureHandler) failureHandler(new Error(result.__error));
+            } else {
+                if (successHandler) successHandler(result);
+              }
+            })
+            .catch(err => {
+              if (failureHandler) failureHandler(err);
+            });
+        };
+      }
+    });
+  }
+  return build(null, null);
+}
+
+var gsRun = makeGsRunShim(GAS_ENDPOINT);
+
+console.log("DEVICE TEST");
+console.log("deviceId:", getDeviceId());
+console.log("deviceToken:", getDeviceToken());
+
+function generateSessionId() {
+  return crypto.randomUUID(); // UUID unik untuk session
+}
+
+function getDeviceId() {
+
+  let id = localStorage.getItem("deviceId");
+
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem("deviceId", id);
+  }
+
+  return id;
+}
+
+function getDeviceToken() {
+
+  let token = localStorage.getItem("deviceToken");
+
+  if (!token) {
+    token = crypto.randomUUID();
+    localStorage.setItem("deviceToken", token);
+  }
+
+  return token;
+}
+
+// ============================================
+// 🔒 SINGLE SESSION: cek tiap 60 detik apakah sesi masih valid
+// ============================================
+let sessionCheckInterval = null;
+
+function mulaiCekSesiBerkala() {
+  if (sessionCheckInterval) clearInterval(sessionCheckInterval);
+
+  sessionCheckInterval = setInterval(cekValiditasSesi, 60 * 1000);
+
+  // 🚩 BARU: cek juga setiap kali tab/browser kembali fokus (setelah minimize)
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      cekIdleSetelahKembali(); // cek idle dulu (kasus #1)
+      cekValiditasSesi();      // baru cek single-session
+    }
+  });
+}
+
+function cekValiditasSesi() {
+  const sessionId = localStorage.getItem("sessionId");
+  if (!sessionId) return;
+
+  gsRun
+    .withSuccessHandler(res => {
+      if (!res || !res.valid) {
+        console.warn("🚫 Sesi sudah tidak valid (login dari device lain)");
+        paksaLogoutKarenaSesiLain();
+      }
+    })
+    .withFailureHandler(err => {
+      console.error("❌ Gagal cek validitas sesi:", err);
+    })
+    .checkSessionValid(sessionId);
+}
+
+function paksaLogoutKarenaSesiLain() {
+  bersihkanSesiLokal();
+
+  const status = document.getElementById("loginStatus");
+  if (status) {
+    status.innerText = "⚠️ Akun Anda login dari device/tempat lain. Silakan login ulang.";
+    status.style.color = "#e74c3c";
+    status.style.textAlign = "center";
+  }
+}
+
+// ============================================
+// 😴 IDLE TIMEOUT — pakai TIMESTAMP, bukan cuma setTimeout
+// ============================================
+const IDLE_LIMIT_MS = 5 * 60 * 1000; // 5 menit
+let idleTimer = null;
+
+function catatAktivitasTerakhir() {
+  // Hanya catat kalau memang sedang login (dashboard aktif)
+  const dashboardEl = document.getElementById("dashboard");
+  if (!dashboardEl || dashboardEl.style.display === "none") return;
+
+  localStorage.setItem("lastActivity", Date.now().toString());
+}
+
+function resetIdleTimer() {
+  catatAktivitasTerakhir();
+
+  if (idleTimer) clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    console.warn("😴 Idle 5 menit (timer aktif), auto logout.");
+    paksaLogoutKarenaIdle();
+  }, IDLE_LIMIT_MS);
+}
+
+// 🚩 BARU: dipanggil saat tab kembali aktif (mengatasi kasus minimize/background)
+function cekIdleSetelahKembali() {
+  const dashboardEl = document.getElementById("dashboard");
+  if (!dashboardEl || dashboardEl.style.display === "none") return; // tidak sedang login
+
+  const last = parseInt(localStorage.getItem("lastActivity") || "0", 10);
+  if (!last) return;
+
+  const selisih = Date.now() - last;
+
+  if (selisih >= IDLE_LIMIT_MS) {
+    console.warn("😴 Idle terdeteksi setelah browser dibuka lagi. Selisih: " + Math.round(selisih/1000) + " detik");
+    paksaLogoutKarenaIdle();
+  } else {
+    // Masih dalam batas waktu, reset timer dari sisa waktu yang ada
+    resetIdleTimer();
+  }
+}
+
+function paksaLogoutKarenaIdle() {
+  const sessionId =
+    (SESSION_USER && SESSION_USER.sessionId) || localStorage.getItem("sessionId");
+
+  if (sessionId) {
+    gsRun
+      .withFailureHandler(err => console.error("❌ Gagal hapus sesi idle di server:", err))
+      .logoutUser(sessionId);
+  }
+
+  bersihkanSesiLokal();
+
+  const status = document.getElementById("loginStatus");
+  if (status) {
+    status.innerText = "⏳ Anda otomatis logout karena tidak aktif 5 menit.";
+    status.style.color = "#e67e22";
+    status.style.textAlign = "center";
+  }
+}
+
+// ============================================
+// 🧹 Helper bersama: bersihkan semua state + INPUT FORM
+// ============================================
+function bersihkanSesiLokal() {
+  if (sessionCheckInterval) clearInterval(sessionCheckInterval);
+  if (idleTimer) clearTimeout(idleTimer);
+
+  localStorage.removeItem("sessionId");
+  localStorage.removeItem("namaLogin");
+  localStorage.removeItem("saldoLogin");
+  localStorage.removeItem("poinLogin");
+  localStorage.removeItem("lastActivity"); // 🚩 BARU
+  sessionStorage.clear();
+
+  SESSION_USER = null;
+  user = null;
+
+  const dashboardEl = document.getElementById("dashboard");
+  const loginDivEl = document.getElementById("loginDiv");
+  if (dashboardEl) dashboardEl.style.display = "none";
+  if (loginDivEl) loginDivEl.style.display = "block";
+
+  // 🚩 BARU: kosongkan input nama & PIN agar tidak bisa dipakai user lain
+  const namaInput = document.getElementById("nama");
+  const pinInput = document.getElementById("pin");
+  if (namaInput) namaInput.value = "";
+  if (pinInput) pinInput.value = "";
+
+  // Kalau ada input barcode juga, kosongkan
+  const barcodeInput = document.getElementById("barcode");
+  if (barcodeInput) barcodeInput.value = "";
+}
+
+// Pantau aktivitas: klik, ketik, sentuh, scroll
+["click", "keydown", "touchstart", "scroll", "mousemove"].forEach(evt => {
+  document.addEventListener(evt, resetIdleTimer, { passive: true });
+});
+
+// 🚩 BARU: tampilkan pesan PENDING di dashboard, stop proses lain
+function handlePendingJikaAda(response) {
+  if (!response || !response.pending) return false;
+
+  console.warn("⏳ Akun PENDING:", response.nama || response.message);
+
+  const loginDiv = document.getElementById("loginDiv");
+  const dashboard = document.getElementById("dashboard");
+  const loader = document.getElementById("loader");
+  const status = document.getElementById("loginStatus");
+
+  if (loader) loader.style.display = "none";
+
+  // Kalau dashboard ada, tampilkan kartu pending di sana
+  if (dashboard) {
+    if (loginDiv) loginDiv.style.display = "none";
+    dashboard.style.display = "block";
+    dashboard.innerHTML = `
+      <div style="
+        text-align:center;
+        padding:30px;
+        color:#d97706;
+        font-weight:bold;
+        font-size:18px;
+        background:#fffbeb;
+        border-radius:12px;
+        margin:20px;
+        border:1px solid #fde68a;
+      ">
+        ⏳ Akun Anda menunggu persetujuan<br><br>
+        <small style="color:#555; font-weight:normal;">
+          ${response.rekomendasi ? "Menunggu konfirmasi dari <b>" + response.rekomendasi + "</b>" : "Silakan tunggu konfirmasi admin"}
+        </small>
+      </div>
+    `;
+  } else if (status) {
+    // Fallback: tampilkan di status text area form login
+    status.innerText = response.message || "⏳ Akun masih menunggu persetujuan.";
+    status.style.color = "#d97706";
+    status.style.textAlign = "center";
+    if (loginDiv) loginDiv.style.display = "block";
+  }
+
+  return true;
+}
+
+// cek session untuk auto-login
+window.addEventListener("DOMContentLoaded", () => {
+
+  const sessionId = localStorage.getItem("sessionId");
+
+  const loginDiv = document.getElementById("loginDiv");
+  const dashboard = document.getElementById("dashboard");
+  const loader = document.getElementById("loader");
+
+  if (!sessionId) {
+    console.log("ℹ️ Tidak ada session, tampilkan login");
+    return;
+  }
+
+  console.log("🔄 Cek session lama:", sessionId);
+
+  if (loginDiv) loginDiv.style.display = "none";
+  if (loader) loader.style.display = "flex";
+
+  gsRun
+    .withSuccessHandler(response => {
+
+      if (loader) loader.style.display = "none";
+
+      if (response && response.nama) {
+
+        console.log("✅ Session valid:", response.nama);
+
+        // 🚩 CEK PENDING DULU (sebelum cek blokir biasa)
+        if (handlePendingJikaAda(response)) return;
+
+        if (response.Blokir && response.Blokir.toString().toUpperCase() === "AKTIF") {
+
+          console.warn("🚫 Akun diblokir:", response.nama);
+
+          if (typeof kunciTombolTransfer === "function") {
+            kunciTombolTransfer();
+          }
+
+          if (typeof aktifkanModeTerkunci === "function") {
+            aktifkanModeTerkunci();
+          }
+
+          if (dashboard) {
+            dashboard.style.display = "block";
+            dashboard.innerHTML = `
+              <div style="
+                text-align:center;
+                padding:30px;
+                color:#ef4444;
+                font-weight:bold;
+                font-size:18px;
+                background: #fff5f5;
+                border-radius: 12px;
+                margin: 20px;
+                border: 1px solid #feb2b2;
+              ">
+                ⚠️ Akun anda terdeteksi menjadi penampung<br><br>
+                <small style="color:#555; font-weight:normal;">Silakan hubungi admin untuk membuka blokir</small>
+              </div>
+            `;
+          }
+
+          return;
+        }
+
+        handleLoginSuccess(response);
+
+      } else {
+
+        console.warn("⚠️ Session tidak valid");
+        clearSession();
+        if (loginDiv) loginDiv.style.display = "block";
+        if (dashboard) dashboard.style.display = "none";
+
+      }
+
+    })
+    .withFailureHandler(err => {
+
+      console.error("❌ Gagal cek session:", err);
+      if (loader) loader.style.display = "none";
+      if (loginDiv) loginDiv.style.display = "block";
+
+    })
+    .getLoginUser(sessionId);
+
+});
+
+//login auto refresh
+function login(barcodeId = null) {
+
+  const status = document.getElementById("loginStatus");
+  const loader = document.getElementById("loader");
+  const loginDiv = document.getElementById("loginDiv");
+  const dashboard = document.getElementById("dashboard");
+
+  if (status) status.style.textAlign = "center";
+
+  const deviceId = getDeviceId();
+  const deviceToken = getDeviceToken();
+
+  const sessionId = localStorage.getItem("sessionId");
+
+  console.log("Device:", { deviceId, deviceToken, sessionId });
+
+  function handleBlokirJikaAda(response) {
+    if (response.Blokir === "AKTIF") {
+
+      console.warn("🚫 Akun diblokir:", response.nama);
+
+      if (dashboard) dashboard.style.display = "block";
+
+      handleLoginSuccess(response);
+
+      // 🚩 BARU: tetap aktifkan pengaman sesi walau akun diblokir
+      mulaiCekSesiBerkala();
+      resetIdleTimer();
+
+      document.querySelectorAll(".btnAksi").forEach(btn => {
+        btn.classList.add("locked");
+
+        btn.onclick = function(e) {
+          e.preventDefault();
+          alert("⚠️ Akun anda terdeteksi menjadi penampung.\nHubungi admin untuk membuka blokir.");
+        };
+      });
+
+      return true;
+    }
+    return false;
+  }
+
+  // =========================
+  // 🔑 AUTO LOGIN
+  // =========================
+  if (sessionId && !barcodeId) {
+
+    console.log("▶ Auto-login attempt:", sessionId);
+
+    if (loginDiv) loginDiv.style.display = "none";
+    if (loader) loader.style.display = "flex";
+
+    gsRun
+      .withSuccessHandler(response => {
+
+        if (loader) loader.style.display = "none";
+
+        if (response && response.nama) {
+
+          console.log("✅ Auto-login sukses:", response.nama);
+
+          // 🚩 CEK PENDING
+          if (handlePendingJikaAda(response)) return;
+
+          if (handleBlokirJikaAda(response)) return;
+
+          handleLoginSuccess(response);
+
+          // 🚩 BARU: aktifkan single-session check & idle timer
+          mulaiCekSesiBerkala();
+          resetIdleTimer();
+
+        } else {
+
+          console.warn("⚠️ Auto-login gagal");
+
+          clearSession();
+
+          if (loginDiv) loginDiv.style.display = "block";
+          if (dashboard) dashboard.style.display = "none";
+
+          showManualLogin(status);
+        }
+
+      })
+      .withFailureHandler(err => {
+
+        if (loader) loader.style.display = "none";
+
+        console.error("❌ Gagal cek session:", err);
+
+        clearSession();
+
+        if (loginDiv) loginDiv.style.display = "block";
+        if (dashboard) dashboard.style.display = "none";
+
+        showManualLogin(status);
+
+      })
+      .getLoginUser(sessionId);
+
+    return;
+  }
+
+  // =========================
+  // 🔐 LOGIN VIA BARCODE
+  // =========================
+  if (barcodeId) {
+
+    if (loader) loader.style.display = "flex";
+
+    console.log("▶ Login barcode:", { barcodeId, deviceId, deviceToken });
+
+    gsRun
+      .withSuccessHandler(response => {
+
+        if (loader) loader.style.display = "none";
+
+        if (!response || !response.valid) {
+
+          // 🚩 CEK PENDING (response.valid = false tapi pending = true)
+          if (response && response.pending) {
+            if (status) {
+              status.innerText = response.message || "⏳ Akun masih menunggu persetujuan.";
+              status.style.color = "#d97706";
+            }
+            return;
+          }
+
+          status.innerText = response?.message || "❌ Barcode tidak valid!";
+          status.style.color = "red";
+
+          return;
+        }
+
+        if (handleBlokirJikaAda(response)) return;
+
+        handleLoginSuccess(response);
+
+        // 🚩 BARU: aktifkan single-session check & idle timer
+        mulaiCekSesiBerkala();
+        resetIdleTimer();
+
+      })
+      .withFailureHandler(err => {
+
+        if (loader) loader.style.display = "none";
+
+        console.error("❌ Error login barcode:", err);
+
+        status.innerText = "❌ Terjadi kesalahan server.";
+        status.style.color = "red";
+
+      })
+      .loginWithBarcode(barcodeId, deviceId, deviceToken);
+
+    return;
+  }
+
+  // =========================
+  // 🔐 LOGIN MANUAL
+  // =========================
+
+  const nama = document.getElementById("nama").value.trim();
+  const pin = document.getElementById("pin").value.trim();
+
+  if (!nama || !pin) {
+
+    status.innerText = "⚠️ Masukkan nama dan PIN!";
+    status.style.color = "#e67e22";
+    return;
+  }
+
+  if (loader) loader.style.display = "flex";
+
+  console.log("▶ Login manual:", { nama, pinLength: pin.length, deviceId, deviceToken });
+
+  gsRun
+    .withSuccessHandler(response => {
+
+      if (loader) loader.style.display = "none";
+
+      if (!response || !response.valid) {
+
+        // 🚩 CEK PENDING
+        if (response && response.pending) {
+          status.innerText = response.message || "⏳ Akun masih menunggu persetujuan.";
+          status.style.color = "#d97706";
+          return;
+        }
+
+        status.innerText = response?.message || "❌ Nama atau PIN salah!";
+        status.style.color = "red";
+        return;
+      }
+
+      if (handleBlokirJikaAda(response)) return;
+
+      handleLoginSuccess(response);
+
+      // 🚩 BARU: aktifkan single-session check & idle timer
+      mulaiCekSesiBerkala();
+      resetIdleTimer();
+
+    })
+    .withFailureHandler(err => {
+
+      if (loader) loader.style.display = "none";
+
+      console.error("❌ Error login:", err);
+
+      status.innerText = "❌ Terjadi kesalahan server.";
+      status.style.color = "red";
+
+    })
+    .loginWithPin(nama, pin, deviceId, deviceToken);
+}
+
+// 🔑 Fungsi untuk clear session lama
+function clearSession() {
+  localStorage.removeItem("sessionId");
+  console.log("▶ Session lama dibersihkan");
+}
+
+
+// 👇 helper kecil biar nggak ulang-ulang kode
+function showManualLogin(status) {
+  if (status) {
+    status.innerText = "⚠️ Silakan login dengan Nama & PIN!";
+    status.style.textAlign = "center";
+    status.style.color = "#e67e22";
+  }
+  document.getElementById("loginDiv").style.display = "block";
+}
+
+function handleLoginSuccess(response) {
+
+  console.log("▶ handleLoginSuccess dipanggil:", response);
+
+  // --- Ambil sessionId dari server
+  const sessionId = response.sessionId || crypto.randomUUID();
+
+  if (!response.sessionId) {
+    console.warn("⚠️ sessionId kosong, generate UUID baru:", sessionId);
+  }
+
+  // 🧹 Hapus hanya data user lama (jangan hapus deviceId & deviceToken)
+  localStorage.removeItem("namaLogin");
+  localStorage.removeItem("saldoLogin");
+  localStorage.removeItem("poinLogin");
+
+  sessionStorage.clear();
+
+  // 🔑 Simpan session baru
+  localStorage.setItem("sessionId", sessionId);
+  localStorage.setItem("namaLogin", response.nama || "-");
+  localStorage.setItem("saldoLogin", Number(response.saldo) || 0);
+  localStorage.setItem("poinLogin", Number(response.poin) || 0);
+
+  sessionStorage.setItem("namaLogin", response.nama || "-");
+
+  // --- Data global
+  user = response;
+
+  SESSION_USER = {
+    sessionId: sessionId,
+    nama: response.nama || "-",
+    saldo: Number(response.saldo) || 0,
+    poin: Number(response.poin) || 0
+  };
+
+  saldoTampilan = SESSION_USER.saldo;
+
+  // 🚨 CEK BLOKIR (log saja dulu)
+  const isBlokir = response.Blokir === "AKTIF";
+  if (isBlokir) {
+    console.warn("🚫 User dalam status blokir:", response.nama);
+  }
+
+  console.log("🔹 Session & user awal:", SESSION_USER);
+
+  // --- Update UI dari session
+  const dashboardEls = {
+    nama: document.getElementById("namaPemain"),
+    saldo: document.getElementById("saldoPemain"),
+    poin: document.getElementById("poinPemain")
+  };
+
+  const headerEls = {
+    nama: document.getElementById("namaUser"),
+    poin: document.getElementById("poinUser")
+  };
+
+  if (dashboardEls.nama) dashboardEls.nama.textContent = SESSION_USER.nama;
+  if (dashboardEls.saldo) dashboardEls.saldo.textContent = SESSION_USER.saldo;
+  if (dashboardEls.poin) dashboardEls.poin.textContent = SESSION_USER.poin;
+
+  if (headerEls.nama) headerEls.nama.textContent = SESSION_USER.nama;
+  if (headerEls.poin) headerEls.poin.textContent = SESSION_USER.poin;
+
+  // ⭐ load gelar pemain
+  if (typeof loadGelar === "function") {
+    loadGelar(SESSION_USER.nama);
+  }
+
+  // --- Simpan session di server
+  gsRun
+    .withFailureHandler(err =>
+      console.error("❌ Gagal simpan session server:", err)
+    )
+    .simpanSessionUser(SESSION_USER);
+
+  gsRun
+    .withFailureHandler(err =>
+      console.error("❌ Gagal simpan login aktif:", err)
+    )
+    .simpanLoginAktif(SESSION_USER.nama);
+
+  // --- Tampilkan dashboard
+  const dashboardEl = document.getElementById("dashboard");
+  const loginDivEl = document.getElementById("loginDiv");
+
+  if (dashboardEl && loginDivEl) {
+    loginDivEl.style.display = "none";
+    dashboardEl.style.display = "block";
+  }
+
+  // --- Ambil sisa waktu booking
+  gsRun
+    .withSuccessHandler(sisaWaktu => {
+
+      waktuSisa = sisaWaktu;
+
+      const waktuEl = document.getElementById("waktuBooking");
+      if (waktuEl) waktuEl.textContent = sisaWaktu + " menit";
+
+      console.log("🔹 Sisa waktu booking:", sisaWaktu);
+
+    })
+    .withFailureHandler(err =>
+      console.error("❌ Gagal ambil sisa waktu booking:", err)
+    )
+    .getTotalDurasiBooking(SESSION_USER.nama);
+
+  // --- Cek booking
+  cekSisaBooking();
+
+  console.log("🔄 Memulai loadKlaim...");
+  loadKlaim();
+
+  // --- Cek permintaan rekomendasi pending untuk user ini
+  gsRun
+    .withSuccessHandler(daftarPending => {
+
+      if (!daftarPending || daftarPending.length === 0) return;
+
+      console.log("🔔 Ada permintaan rekomendasi:", daftarPending);
+      tampilkanModalRekomendasi(daftarPending);
+
+    })
+    .withFailureHandler(err =>
+      console.error("❌ Gagal cek rekomendasi pending:", err)
+    )
+    .getPendingRekomendasiUntuk(SESSION_USER.nama);
+    
+  // --- Cek ulang tahun
+  gsRun
+    .withSuccessHandler(isUltah => {
+
+      if (!isUltah) return;
+
+      gsRun
+        .withSuccessHandler(sudahKlaim => {
+
+          if (sudahKlaim) {
+            console.log("🎂 User sudah klaim hadiah ultah.");
+            return;
+          }
+
+          const modal = ensureModalUltah();
+
+          if (modal) {
+            modal.style.display = "flex";
+
+            console.log(
+              "🎂 Modal hadiah ultah ditampilkan:",
+              SESSION_USER.nama
+            );
+          }
+
+        })
+        .withFailureHandler(err =>
+          console.error("❌ Gagal cek klaim ultah:", err)
+        )
+        .sudahKlaimUltah(SESSION_USER.nama);
+
+    })
+    .withFailureHandler(err =>
+      console.error("❌ Gagal cek ulang tahun:", err)
+    )
+    .checkBirthday(SESSION_USER.nama);
+
+  // 🔒 AKTIFKAN MODE TERKUNCI (paling akhir biar semua tombol sudah render)
+  if (isBlokir) {
+    setTimeout(() => {
+      aktifkanModeTerkunci();
+    }, 300);
+  }
+
+  // 🔒 Aktifkan single-session check & idle timer
+  if (typeof mulaiCekSesiBerkala === "function") {
+    mulaiCekSesiBerkala();
+  } else {
+    console.warn("⚠️ Fungsi mulaiCekSesiBerkala() belum didefinisikan.");
+  }
+
+  if (typeof resetIdleTimer === "function") {
+    resetIdleTimer();
+  } else {
+    console.warn("⚠️ Fungsi resetIdleTimer() belum didefinisikan.");
+  }
+
+}
+
+
+</script>
+
+
+<script>
+  // PASTE: isi lengkap file "Klaim" (submitKlaim, loadKlaim, prosesKlaimClient, dst)
+</script>
+
+<script>
+  // PASTE: isi lengkap file "Booking Form" (cekBooking, submitBookingForm, cekSisaBooking)
+</script>
     <script>
         // Mendaftarkan File Service Worker Resmi
         if ('serviceWorker' in navigator) {
