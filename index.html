@@ -8105,9 +8105,96 @@ function tutupModalRekomendasi() {
 }
 </script>
 <script>
-/*! canvas-confetti v1.6.0 */
-var confetti=function(){function m(l){return(l=JSON.parse(JSON.stringify(l||{}))).particleCount=Math.floor(l.particleCount||50);var r=l.angle||90;return l.angleRange=[r-15,r+15],l.spread=l.spread||45,l.startVelocity=l.startVelocity||45,l.decay=l.decay||.9,l.gravity=l.gravity||1,l.drift=l.drift||0,l.ticks=l.ticks||200,l.origin=l.origin||{x:.5,y:.5},l.colors=l.colors||["#26ccff","#a25afd","#ff5e7e","#88ff5a","#fcff42","#ffa62d","#ff36ff"],l.shapes=l.shapes||["square","circle"],l.scalar=l.scalar||1,l.zIndex=l.zIndex||100,l.resize=l.resize||!1,l.disableForReducedMotion=l.disableForReducedMotion||!1,l}function y(l,r){return(Math.random()*(r-l)+l)|0}function B(l){return Math.random()*l}function C(l){return Array.isArray(l)?l[y(0,l.length)]():l()}function S(l){for(var r=[],t=0;t<l.particleCount;t++)r.push({x:l.origin.x,y:l.origin.y,angle:y(l.angleRange[0],l.angleRange[1]),spread:l.spread,startVelocity:l.startVelocity,velocity:l.startVelocity,decay:l.decay,gravity:l.gravity,drift:l.drift,ticks:l.ticks,shape:C(l.shapes),color:C(l.colors),tiltAngle:B(2*Math.PI),tiltAngleIncrement:B(.1),scalar:l.scalar});return r}function D(l,r,t){for(var e=document.createElement("canvas"),i=e.getContext("2d"),n=(e.width=window.innerWidth,e.height=window.innerHeight,e.style.position="fixed",e.style.top="0px",e.style.left="0px",e.style.pointerEvents="none",e.style.zIndex=l.zIndex,e),a=S(l),o=0,s=l.ticks;0<s;){i.clearRect(0,0,e.width,e.height),a.forEach(function(f,d){f.x+=Math.cos(f.angle*Math.PI/180)*(f.velocity/100)+f.drift,f.y+=Math.sin(f.angle*Math.PI/180)*(f.velocity/100)+l.gravity,f.tiltAngle+=f.tiltAngleIncrement,f.tiltAngle%=2*Math.PI,f.velocity*=l.decay,i.fillStyle=f.color,i.beginPath();var g=f.x*e.width,v=f.y*e.height;if(f.shape==="circle")i.arc(g,v,f.scalar*3,0,2*Math.PI);else{i.save(),i.translate(g,v),i.rotate(f.tiltAngle),i.fillRect(-f.scalar*3,-f.scalar*3,f.scalar*6,f.scalar*6),i.restore()}i.fill();}),s--,(o=s)>0?requestAnimationFrame(function(){D(l,r,t)}):(document.body.removeChild(e),t&&t())}var p=null;return function(l){var r=m(l);return!r.disableForReducedMotion||window.matchMedia&&!window.matchMedia("(prefers-reduced-motion)").matches?new Promise(function(t){p&&document.body.contains(p)&&(document.body.removeChild(p),p=null),p=document.createElement("canvas"),document.body.appendChild(p),D(r,p,t)}):Promise.resolve()}}();
+/*! canvas-confetti v1.6.0 | Fixed Minified Scope */
+var confetti = (function() {
+  function m(l) {
+    l = JSON.parse(JSON.stringify(l || {}));
+    l.particleCount = Math.floor(l.particleCount || 50);
+    var r = l.angle || 90;
+    return l.angleRange = [r - 15, r + 15], l.spread = l.spread || 45, l.startVelocity = l.startVelocity || 45, l.decay = l.decay || .9, l.gravity = l.gravity || 1, l.drift = l.drift || 0, l.ticks = l.ticks || 200, l.origin = l.origin || { x: .5, y: .5 }, l.colors = l.colors || ["#26ccff", "#a25afd", "#ff5e7e", "#88ff5a", "#fcff42", "#ffa62d", "#ff36ff"], l.shapes = l.shapes || ["square", "circle"], l.scalar = l.scalar || 1, l.zIndex = l.zIndex || 100, l.resize = l.resize || !1, l.disableForReducedMotion = l.disableForReducedMotion || !1, l;
+  }
+  function y(l, r) { return (Math.random() * (r - l) + l) | 0; }
+  function B(l) { return Math.random() * l; }
+  function C(l) { return Array.isArray(l) ? l[y(0, l.length)] : (typeof l === 'function' ? l() : l); }
+  
+  function S(l) {
+    for (var r = [], t = 0; t < l.particleCount; t++) {
+      r.push({
+        x: l.origin.x, y: l.origin.y,
+        angle: y(l.angleRange[0], l.angleRange[1]),
+        spread: l.spread, startVelocity: l.startVelocity, velocity: l.startVelocity,
+        decay: l.decay, gravity: l.gravity, drift: l.drift, ticks: l.ticks,
+        shape: C(l.shapes), color: C(l.colors), tiltAngle: B(2 * Math.PI),
+        tiltAngleIncrement: B(.1), scalar: l.scalar
+      });
+    }
+    return r;
+  }
 
+  function D(l, canvas, particles, resolve) {
+    var ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    particles = particles.filter(function(f) {
+      f.x += Math.cos(f.angle * Math.PI / 180) * (f.velocity / 100) + f.drift;
+      f.y += Math.sin(f.angle * Math.PI / 180) * (f.velocity / 100) + l.gravity;
+      f.tiltAngle += f.tiltAngleIncrement;
+      f.velocity *= l.decay;
+      
+      ctx.fillStyle = f.color;
+      ctx.beginPath();
+      var g = f.x * canvas.width, v = f.y * canvas.height;
+      
+      if (f.shape === "circle") {
+        ctx.arc(g, v, f.scalar * 3, 0, 2 * Math.PI);
+      } else {
+        ctx.save(); ctx.translate(g, v); ctx.rotate(f.tiltAngle);
+        ctx.fillRect(-f.scalar * 3, -f.scalar * 3, f.scalar * 6, f.scalar * 6);
+        ctx.restore();
+      }
+      ctx.fill();
+      f.ticks--;
+      return f.ticks > 0;
+    });
+
+    if (particles.length > 0) {
+      requestAnimationFrame(function() { D(l, canvas, particles, resolve); });
+    } else {
+      if (document.body.contains(canvas)) document.body.removeChild(canvas);
+      if (resolve) resolve();
+    }
+  }
+
+  var activeCanvas = null;
+
+  return function(options) {
+    var config = m(options);
+    if (config.disableForReducedMotion && window.matchMedia && window.matchMedia("(prefers-reduced-motion)").matches) {
+      return Promise.resolve();
+    }
+    
+    return new Promise(function(resolve) {
+      if (activeCanvas && document.body.contains(activeCanvas)) {
+        document.body.removeChild(activeCanvas);
+      }
+      
+      var e = document.createElement("canvas");
+      e.width = window.innerWidth;
+      e.height = window.innerHeight;
+      e.style.position = "fixed";
+      e.style.top = "0px";
+      e.style.left = "0px";
+      e.style.pointerEvents = "none";
+      e.style.zIndex = config.zIndex;
+      
+      activeCanvas = e;
+      document.body.appendChild(e);
+      
+      var particles = S(config);
+      D(config, e, particles, resolve);
+    });
+  };
+})();
 </script>
     
     <script>
