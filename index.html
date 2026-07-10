@@ -7468,7 +7468,639 @@ function closeModalLomba() {
   document.getElementById('modalLomba').style.display = 'none';
 }
 </script>
+<script>
+let hadiahDipilih = null;
 
+function ensureModalUltah() {
+  let modal = document.getElementById("ultahModal");
+  if (modal) return modal;
+
+  // --- sisipkan style hanya sekali ---
+  if (!document.getElementById("styleCardUltah")) {
+    const style = document.createElement("style");
+    style.id = "styleCardUltah";
+    style.textContent = `
+      .cardUltah {
+        width:80px; height:110px;
+        perspective:1000px;
+        cursor:pointer;
+      }
+      .card-inner {
+        width:100%; height:100%;
+        position:relative;
+        transform-style:preserve-3d;
+        transition:transform 0.6s;
+      }
+      .cardUltah.revealed .card-inner { transform:rotateY(180deg); }
+      .card-front, .card-back {
+        position:absolute;width:100%;height:100%;
+        backface-visibility:hidden;border-radius:10px;
+        font-weight:bold;display:flex;justify-content:center;align-items:center;
+      }
+      .card-front { background:#eee;font-size:30px; }
+      .card-back {
+        background:#fff3cd;transform:rotateY(180deg);
+        flex-direction:column;gap:4px;text-align:center;
+      }
+      .card-back .icon { font-size:22px; }
+      .card-back .nilai { font-size:16px;font-weight:bold; }
+      .cardUltah.dipilih {
+        border:3px solid #2ecc71;border-radius:12px;
+        box-shadow:0 0 12px rgba(46,204,113,0.6);position:relative;
+      }
+      .cardUltah.dipilih::after {
+        content:"✅ Dipilih";position:absolute;bottom:-22px;
+        left:50%;transform:translateX(-50%);
+        font-size:12px;font-weight:bold;color:#2ecc71;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // --- modal utama ---
+  modal = document.createElement("div");
+  modal.id = "ultahModal";
+  modal.style.cssText = `
+    display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+    background:rgba(0,0,0,.6);justify-content:center;align-items:center;z-index:9999;
+  `;
+  modal.innerHTML = `
+    <div style="background:#fff;padding:20px;border-radius:12px;width:380px;text-align:center;">
+      <h2>🎂 Selamat Ulang Tahun!</h2>
+      <p>Pilih salah satu kartu hadiah saldo 🎁</p>
+      <div id="kartuUltahContainer" style="display:flex;gap:10px;justify-content:center;margin-top:16px;">
+        ${Array(3).fill(0).map(() => `
+          <div class="cardUltah" onclick="openCard(this)">
+            <div class="card-inner">
+              <div class="card-front">🎁</div>
+              <div class="card-back"></div>
+            </div>
+          </div>`).join('')}
+      </div>
+      <p id="ultahNote" style="margin-top:15px;font-size:13px;color:#666;"></p>
+      <button onclick="closeUltah()" style="margin-top:20px;padding:10px 16px;border:none;border-radius:8px;background:#3498db;color:#fff;font-weight:600;cursor:pointer;">Tutup</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  // --- cek status ulang tahun dari server ---
+  gsRun
+    .withSuccessHandler(res => {
+      const { isUlangTahun, sudahKlaim, hadiah } = res;
+      if (!isUlangTahun) return; // bukan ulang tahun
+      if (sudahKlaim) {
+        tampilkanKartuSudahKlaim(hadiah);
+      } else {
+        modal.style.display = "flex";
+      }
+    })
+    .withFailureHandler(err => console.error("❌ Gagal cek status ultah:", err))
+    .checkStatusUltah(SESSION_USER);
+
+  return modal;
+}
+
+function openCard(el) {
+  if (hadiahDipilih) return; // sudah pilih
+
+  // Ambil hadiah acak dari server (agar semua device konsisten)
+  gsRun
+    .withSuccessHandler(hadiah => {
+      hadiahDipilih = hadiah;
+
+      const back = el.querySelector(".card-back");
+      back.innerHTML = `<div class="icon">🎉</div><div class="nilai">+${hadiah.toLocaleString()}</div>`;
+      el.classList.add("revealed", "dipilih");
+
+      // buka semua kartu lainnya (palsu)
+      document.querySelectorAll(".cardUltah").forEach(card => {
+        if (card !== el) {
+          const fake = Math.floor(Math.random() * (10000 - 1000 + 1)) + 1000;
+          const fakeBack = card.querySelector(".card-back");
+          fakeBack.innerHTML = `<div class="icon">😅</div><div class="nilai">+${fake.toLocaleString()}</div>`;
+          card.classList.add("revealed");
+        }
+      });
+
+      document.getElementById("ultahNote").textContent =
+        "Kamu mendapatkan saldo bonus Rp " + hadiah.toLocaleString() +
+        ". Silakan klaim manual di agen dengan menunjukkan KTP sesuai data.";
+
+      // simpan ke DataUltah agar permanen (gunakan lock agar aman)
+      gsRun
+        .withSuccessHandler(msg => {
+          console.log("✅ Ultah tersimpan:", msg);
+          // pastikan semua device lain tahu status sudah klaim
+          localStorage.setItem("ultahStatus_" + SESSION_USER, "klaim_" + hadiah);
+        })
+        .withFailureHandler(err => console.error("❌ Gagal simpan hadiah ultah:", err))
+        .simpanHadiahUltah(SESSION_USER, hadiah);
+    })
+    .withFailureHandler(err => console.error("❌ getHadiahUltah gagal:", err))
+    .getHadiahUltah();
+}
+
+function tampilkanKartuSudahKlaim(hadiah) {
+  const modal = document.getElementById("ultahModal");
+  modal.style.display = "flex";
+
+  const cards = modal.querySelectorAll(".cardUltah");
+  const idxTerpilih = Math.floor(Math.random() * cards.length);
+
+  cards.forEach((card, i) => {
+    const back = card.querySelector(".card-back");
+    if (i === idxTerpilih) {
+      back.innerHTML = `<div class="icon">🎉</div><div class="nilai">+${hadiah.toLocaleString()}</div>`;
+      card.classList.add("revealed", "dipilih");
+    } else {
+      const fake = Math.floor(Math.random() * (10000 - 1000 + 1)) + 1000;
+      back.innerHTML = `<div class="icon">😅</div><div class="nilai">+${fake.toLocaleString()}</div>`;
+      card.classList.add("revealed");
+    }
+  });
+
+  document.getElementById("ultahNote").textContent =
+    "Kamu sudah mengambil hadiah ulang tahun hari ini 🎉";
+}
+
+function closeUltah() {
+  document.getElementById("ultahModal").style.display = "none";
+  hadiahDipilih = null;
+}
+</script>
+<!-- Pastikan library HTML5-Qrcode sudah disertakan -->
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+let barcodeInputEl, status, loader;
+let html5QrCodeInstance = null;
+let cameraActive = false;
+
+document.addEventListener("DOMContentLoaded", () => {
+  // --- Elemen DOM ---
+  barcodeInputEl = document.getElementById("barcode");
+  status = document.getElementById("loginStatus");
+  loader = document.getElementById("loader");
+
+  const loginNormalDiv = document.getElementById("loginNormal");
+  const loginBarcodeDiv = document.getElementById("loginBarcode");
+  const openBarcodeIcon = document.getElementById("openBarcodeIcon");
+  const backToNormalBtn = document.getElementById("backToNormal");
+  const toggleCameraBtn = document.getElementById("toggleCamera");
+
+  // --- Fungsi fokus input ---
+  function focusBarcodeInput() {
+    if (barcodeInputEl) barcodeInputEl.focus();
+  }
+
+  // --- Update ikon kamera ---
+  function updateCameraIcon() {
+    toggleCameraBtn.innerText = cameraActive ? "🟢 Matikan Kamera" : "🔴 Nyalakan Kamera";
+    toggleCameraBtn.style.backgroundColor = cameraActive ? "green" : "red";
+  }
+
+  // --- Fungsi start scanner ---
+  function startScanner() {
+    if (!html5QrCodeInstance) html5QrCodeInstance = new Html5Qrcode("qr-reader");
+
+    Html5Qrcode.getCameras()
+      .then(cameras => {
+        if (cameras && cameras.length) {
+          html5QrCodeInstance.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: 250 },
+            decodedText => {
+              barcodeInputEl.value = decodedText;
+              startLoginBarcode();
+            }
+          );
+          cameraActive = true;
+          updateCameraIcon();
+          console.log("✅ Kamera aktif");
+        }
+      })
+      .catch(err => console.error("Tidak bisa akses kamera:", err));
+  }
+
+  // --- Fungsi stop scanner ---
+  function stopScanner() {
+    if (html5QrCodeInstance && cameraActive) {
+      html5QrCodeInstance.stop()
+        .then(() => {
+          cameraActive = false;
+          updateCameraIcon();
+          console.log("❌ Kamera dimatikan");
+        })
+        .catch(err => console.warn("❌ Gagal stop kamera:", err));
+    }
+  }
+
+  // --- Tombol toggle kamera ---
+  toggleCameraBtn.addEventListener("click", () => {
+    if (cameraActive) stopScanner();
+    else startScanner();
+  });
+
+  // --- Tombol buka login barcode ---
+  openBarcodeIcon.addEventListener("click", () => {
+    loginNormalDiv.style.display = "none";
+    loginBarcodeDiv.style.display = "block";
+    focusBarcodeInput();
+    if (!cameraActive) startScanner();
+  });
+
+  // --- Tombol kembali ke login normal ---
+  backToNormalBtn.addEventListener("click", () => {
+    loginBarcodeDiv.style.display = "none";
+    loginNormalDiv.style.display = "block";
+    stopScanner();
+  });
+
+  // --- Pastikan ikon kamera sesuai status awal ---
+  updateCameraIcon();
+
+  // --- Fokus input saat klik input ---
+  barcodeInputEl.addEventListener("focus", () => barcodeInputEl.select());
+});
+
+// --- Ambil atau buat deviceId unik ---
+function getDeviceId() {
+  let deviceId = localStorage.getItem("deviceId");
+  if (!deviceId) {
+    deviceId = crypto.randomUUID();
+    localStorage.setItem("deviceId", deviceId);
+    console.log("▶ DeviceId baru dibuat:", deviceId);
+  }
+  return deviceId;
+}
+
+// --- Fungsi login barcode ---
+function startLoginBarcode() {
+  if (!barcodeInputEl || !status || !loader) return;
+
+  const barcode = (barcodeInputEl.value || "").trim();
+  const deviceId = getDeviceId();
+
+  status.innerText = "";
+  status.style.color = "";
+
+  if (!barcode) {
+    status.innerText = "⚠️ Scan barcode dulu!";
+    status.style.color = "orange";
+    return;
+  }
+
+  loader.style.display = "flex";
+
+gsRun
+    .withSuccessHandler(resp => {
+      loader.style.display = "none";
+
+      if (!resp || !resp.valid) {
+        status.innerText = (resp && resp.message) ? "❌ " + resp.message : "❌ Gagal login.";
+        status.style.color = "red";
+        return;
+      }
+
+      if (!resp.sessionId) resp.sessionId = crypto.randomUUID();
+
+      handleLoginSuccess(resp);
+      barcodeInputEl.value = "";
+    })
+    .withFailureHandler(err => {
+      loader.style.display = "none";
+      status.innerText = "❌ Terjadi kesalahan server.";
+      status.style.color = "red";
+      console.error(err);
+    })
+    .loginWithBarcode(barcode, deviceId);
+}
+
+// --- Fungsi callback scanner ---
+function onScanSuccess(decodedText, decodedResult) {
+  barcodeInputEl.value = decodedText;
+  startLoginBarcode();
+}
+</script>
+<style>
+  /* Tombol nominal */
+  .btnNominal {
+    background:#3498db;
+    color:#fff;
+    padding:8px 12px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    transition:0.2s;
+    margin:4px;
+  }
+  .btnNominal:hover {
+    background:#2980b9;
+  }
+
+  /* Modal umum */
+  .modal {
+    display:none;
+    position:fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background:rgba(0,0,0,0.5);
+    justify-content:center;
+    align-items:center;
+    z-index:1000;
+  }
+  .modal-content {
+    background:#fff;
+    padding:20px;
+    border-radius:10px;
+    width:340px;
+    text-align:center;
+    box-shadow:0 5px 15px rgba(0,0,0,0.3);
+  }
+
+  .modal-content button {
+    margin-top:8px;
+    width:100%;
+    padding:10px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:14px;
+  }
+
+  #btnTopUpSekarang { background:#3498db; color:#fff; }
+  #btnWA { background:#25d366; color:#fff; }
+  #btnBatal { background:#e74c3c; color:#fff; }
+</style>
+
+<script>
+  let nominalDipilih = 0;
+  let nominalTransfer = 0;
+  let kodeUnik = 0;
+
+function openModalTopUp(){
+    document.getElementById("modalTopUp").style.display="flex";
+    nominalDipilih=0;
+    document.getElementById("customNominal").value="";
+  }
+
+function closeModalTopUp(){
+    document.getElementById("modalTopUp").style.display="none";
+  }
+
+function pilihNominal(nominal){
+    nominalDipilih = nominal;
+    document.getElementById("customNominal").value = nominal;
+  }
+
+function lanjutTopUp() {
+  let custom = parseInt(document.getElementById("customNominal").value) || 0;
+  let nominal = nominalDipilih > 0 ? nominalDipilih : custom;
+
+  if (nominal <= 0) {
+    alert("Silakan pilih atau isi nominal top up.");
+    return;
+  }
+
+  const noWAAdmin = "6289668678719"; // Format nomor WA internasional
+
+  // ===== KONDISI KHUSUS: NOMINAL DI ATAS 1.000.000 =====
+  if (nominal > 1000000) {
+    // Menghitung estimasi poin kasarnya (Rp 100 = 1 poin)
+    const estimasiPoin = Math.floor(nominal / 100);
+    
+    alert("Untuk pengisian di atas Rp 1.000.000, hubungi Admin via WhatsApp : 089668678719");
+    
+    const pesanKhusus = "Halo Admin, saya ingin melakukan Top Up dengan nominal besar senilai Rp " + 
+                        nominal.toLocaleString() + 
+                        " (Estimasi " + estimasiPoin.toLocaleString() + " saldo booking). Mohon informasi rekening/metode transfernya ya 🙏";
+    
+    const urlKhusus = "https://wa.me/" + noWAAdmin + "?text=" + encodeURIComponent(pesanKhusus);
+    window.open(urlKhusus, "_blank");
+    return; // Stop fungsi di sini agar tidak memunculkan modal QRIS biasa
+  }
+
+  // ===== KONDISI NORMAL: RP 1.000.000 KE BAWAH =====
+  // Buat kode unik + nominal transfer
+  kodeUnik = Math.floor(100 + Math.random() * 900);
+  nominalTransfer = nominal + kodeUnik;
+
+  // Hitung saldo booking hasil konversi (Rp 100 = 1 poin)
+  const saldoBooking = Math.floor(nominalTransfer / 100);
+
+  // Tutup modal pilih nominal, buka modal QRIS
+  closeModalTopUp();
+  document.getElementById("modalQRIS").style.display = "flex";
+  document.getElementById("qrisNominal").innerText =
+    "Rp " + nominalTransfer.toLocaleString();
+
+  // Pasang event WA setelah tombol ada
+  const btnWA = document.getElementById("btnWA");
+  if (btnWA) {
+    btnWA.onclick = function () {
+      const pesan =
+        "Kak, saya sudah transfer Top Up via QRIS sebesar Rp " +
+        nominalTransfer.toLocaleString() +
+        " (kode unik " +
+        kodeUnik +
+        "). Hasil konversinya menjadi " +
+        saldoBooking.toLocaleString() +
+        " saldo booking. Mohon dicek ya 🙏";
+      const url = "https://wa.me/" + noWAAdmin + "?text=" + encodeURIComponent(pesan);
+      window.open(url, "_blank");
+    };
+  }
+}
+
+function kirimTopUpKlaim() {
+  const btn = document.getElementById("btnTopUpSekarang");
+  btn.innerText = "⏳ Tunggu";
+  btn.disabled = true;
+  btn.style.opacity = "0.6";
+  btn.style.cursor = "not-allowed";
+
+  // 🔹 Gunakan SESSION_USER.sessionId jika tersedia
+  const userSessionId = typeof SESSION_USER !== "undefined" ? SESSION_USER.sessionId : null;
+  const userNama = typeof SESSION_USER !== "undefined" ? SESSION_USER.nama : null;
+
+  if (!userSessionId || !userNama) {
+    alert("⚠ User belum login. Tidak bisa melakukan Top Up.");
+    btn.innerText = "🚀 Stop";
+    btn.disabled = false;
+    btn.style.opacity = "1";
+    btn.style.cursor = "pointer";
+    return;
+  }
+
+  // 🔹 Panggil Apps Script untuk cek klaim pending khusus user ini
+  gsRun.withSuccessHandler(function(hasPending) {
+    if (hasPending) {
+      alert("⚠ Kamu masih punya Top Up yang menunggu konfirmasi. Silakan tunggu diproses dulu.");
+      btn.innerText = "⏳ Wait";
+      btn.disabled = false;
+      btn.style.opacity = "1";
+      btn.style.cursor = "pointer";
+      return;
+    }
+
+    // ✅ Kalau tidak ada klaim menunggu → lanjut buat klaim baru
+    const saldoBooking = Math.floor(nominalTransfer / 100);
+
+    document.getElementById("topupNominal").value = saldoBooking;
+    document.getElementById("topupNama").value    = "aksa";
+    document.getElementById("topupKet").value     = "QRIS";
+    document.getElementById("topupUser").value    = userNama;
+
+submitKlaim();
+
+
+    submitKlaim();
+
+    // Reset tombol setelah submit
+    btn.innerText = "🚀 Top Up";
+    btn.disabled = false;
+    btn.style.opacity = "1";
+    btn.style.cursor = "pointer";
+
+  }).adaKlaimMenunggu(userSessionId); // ✅ kirim sessionId, bukan nama
+}
+
+function closeModalQRIS() {
+  document.getElementById("modalQRIS").style.display = "none";
+}
+
+</script>
+<script>
+/*! canvas-confetti v1.6.0 */
+var confetti=function(){function m(l){return(l=JSON.parse(JSON.stringify(l||{}))).particleCount=Math.floor(l.particleCount||50);var r=l.angle||90;return l.angleRange=[r-15,r+15],l.spread=l.spread||45,l.startVelocity=l.startVelocity||45,l.decay=l.decay||.9,l.gravity=l.gravity||1,l.drift=l.drift||0,l.ticks=l.ticks||200,l.origin=l.origin||{x:.5,y:.5},l.colors=l.colors||["#26ccff","#a25afd","#ff5e7e","#88ff5a","#fcff42","#ffa62d","#ff36ff"],l.shapes=l.shapes||["square","circle"],l.scalar=l.scalar||1,l.zIndex=l.zIndex||100,l.resize=l.resize||!1,l.disableForReducedMotion=l.disableForReducedMotion||!1,l}function y(l,r){return(Math.random()*(r-l)+l)|0}function B(l){return Math.random()*l}function C(l){return Array.isArray(l)?l[y(0,l.length)]():l()}function S(l){for(var r=[],t=0;t<l.particleCount;t++)r.push({x:l.origin.x,y:l.origin.y,angle:y(l.angleRange[0],l.angleRange[1]),spread:l.spread,startVelocity:l.startVelocity,velocity:l.startVelocity,decay:l.decay,gravity:l.gravity,drift:l.drift,ticks:l.ticks,shape:C(l.shapes),color:C(l.colors),tiltAngle:B(2*Math.PI),tiltAngleIncrement:B(.1),scalar:l.scalar});return r}function D(l,r,t){for(var e=document.createElement("canvas"),i=e.getContext("2d"),n=(e.width=window.innerWidth,e.height=window.innerHeight,e.style.position="fixed",e.style.top="0px",e.style.left="0px",e.style.pointerEvents="none",e.style.zIndex=l.zIndex,e),a=S(l),o=0,s=l.ticks;0<s;){i.clearRect(0,0,e.width,e.height),a.forEach(function(f,d){f.x+=Math.cos(f.angle*Math.PI/180)*(f.velocity/100)+f.drift,f.y+=Math.sin(f.angle*Math.PI/180)*(f.velocity/100)+l.gravity,f.tiltAngle+=f.tiltAngleIncrement,f.tiltAngle%=2*Math.PI,f.velocity*=l.decay,i.fillStyle=f.color,i.beginPath();var g=f.x*e.width,v=f.y*e.height;if(f.shape==="circle")i.arc(g,v,f.scalar*3,0,2*Math.PI);else{i.save(),i.translate(g,v),i.rotate(f.tiltAngle),i.fillRect(-f.scalar*3,-f.scalar*3,f.scalar*6,f.scalar*6),i.restore()}i.fill();}),s--,(o=s)>0?requestAnimationFrame(function(){D(l,r,t)}):(document.body.removeChild(e),t&&t())}var p=null;return function(l){var r=m(l);return!r.disableForReducedMotion||window.matchMedia&&!window.matchMedia("(prefers-reduced-motion)").matches?new Promise(function(t){p&&document.body.contains(p)&&(document.body.removeChild(p),p=null),p=document.createElement("canvas"),document.body.appendChild(p),D(r,p,t)}):Promise.resolve()}}();
+
+</script>
+<script>
+function kunciTombolTransfer() {
+  const btn = document.getElementById("btnTransfer");
+  if (!btn) return;
+
+  btn.classList.add("locked");
+  
+  // Mengubah tampilan visual agar terlihat non-aktif
+  btn.style.backgroundColor = "#95a5a6"; // Warna abu-abu
+  btn.style.cursor = "not-allowed";
+  btn.style.opacity = "0.6";
+
+  // Override fungsi klik
+  btn.onclick = function(e) {
+    e.preventDefault();
+    e.stopPropagation(); // Hentikan event agar tidak memicu fungsi lain
+    alert("⚠️ Akun anda terdeteksi menjadi penampung.\nHubungi admin untuk membuka blokir.");
+    return false;
+  };
+}
+
+function aktifkanModeTerkunci() {
+  console.warn("🔒 Mode terkunci aktif");
+
+  function lockSemuaTombol() {
+    document.querySelectorAll(".btnAksi").forEach(btn => {
+
+      // cegah double-apply
+      if (btn.classList.contains("locked")) return;
+
+      btn.classList.add("locked");
+
+      btn.onclick = function(e) {
+        e.preventDefault();
+        alert("⚠️ Akun anda terdeteksi menjadi penampung.\nHubungi admin untuk membuka blokir.");
+      };
+    });
+
+    // khusus tombol transfer (backup)
+    kunciTombolTransfer();
+  }
+
+  // 🔹 Jalankan langsung
+  lockSemuaTombol();
+
+  // 🔥 Observer: kalau ada tombol baru muncul → langsung dikunci
+  const observer = new MutationObserver(() => {
+    lockSemuaTombol();
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+
+  // 🔹 Info ke user
+  const info = document.getElementById("infoBlokir");
+  if (info) {
+    info.innerHTML = `
+      ⚠️ Akun anda terdeteksi menjadi penampung. Beberapa fitur dikunci.
+    `;
+    info.style.display = "block";
+  }
+}
+
+</script>
+<script>
+function tampilkanModalRekomendasi(daftarPending) {
+  const modal = document.getElementById("modalRekomendasi");
+  const container = document.getElementById("daftarPendingRekomendasi");
+
+  if (!modal || !container) return;
+
+  container.innerHTML = daftarPending.map(p => `
+    <div style="
+      border:1px solid #eee; border-radius:10px; padding:12px; margin:10px 0; text-align:left;
+    ">
+      <div style="font-weight:bold;">${p.namaPanggilan}</div>
+      <div style="font-size:13px; color:#555;">${p.namaLengkap || ""}</div>
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button onclick="prosesApproveRekomendasi('${p.namaPanggilan}', 'TOLAK', this)"
+          style="flex:1; padding:8px; background:#fee2e2; color:#b91c1c; border:none; border-radius:6px;">
+          ❌ Tolak
+        </button>
+        <button onclick="prosesApproveRekomendasi('${p.namaPanggilan}', 'SETUJU', this)"
+          style="flex:1; padding:8px; background:#dcfce7; color:#15803d; border:none; border-radius:6px;">
+          ✅ Setuju
+        </button>
+      </div>
+    </div>
+  `).join("");
+
+  modal.style.display = "flex";
+}
+
+function prosesApproveRekomendasi(namaPendaftar, keputusan, btn) {
+  btn.disabled = true;
+  btn.innerText = "⏳...";
+
+  gsRun
+    .withSuccessHandler(res => {
+      if (res && res.success) {
+        // Hapus kartu dari tampilan
+        btn.closest("div[style*='border:1px solid']").remove();
+
+        // Tutup modal kalau sudah tidak ada pending lagi
+        const sisa = document.querySelectorAll("#daftarPendingRekomendasi > div").length;
+        if (sisa === 0) tutupModalRekomendasi();
+      } else {
+        alert(res?.message || "Gagal memproses.");
+        btn.disabled = false;
+        btn.innerText = keputusan === "SETUJU" ? "✅ Setuju" : "❌ Tolak";
+      }
+    })
+    .withFailureHandler(err => {
+      console.error("❌ Gagal proses rekomendasi:", err);
+      alert("Terjadi kesalahan server.");
+      btn.disabled = false;
+    })
+    .approveRekomendasi(namaPendaftar, SESSION_USER.nama, keputusan);
+}
+
+function tutupModalRekomendasi() {
+  const modal = document.getElementById("modalRekomendasi");
+  if (modal) modal.style.display = "none";
+}
+</script>
     <script>
         // Mendaftarkan File Service Worker Resmi
         if ('serviceWorker' in navigator) {
