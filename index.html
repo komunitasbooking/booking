@@ -8268,6 +8268,635 @@ function closeModalLomba() {
   document.getElementById('modalLomba').style.display = 'none';
 }
 </script>
+<style>
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-5px); }
+}
+
+#modalBox.showing-opening {
+  animation: shake 0.5s infinite;
+}
+</style>
+<script>
+let barangAktif = null;
+let countdownInterval = null;
+
+function showLoader() {
+  const loader = document.getElementById('loader');
+  if (loader) loader.style.display = 'flex';
+  console.log("🔹 Loader tampil");
+}
+
+function hideLoader() {
+  const loader = document.getElementById('loader');
+  if (loader) loader.style.display = 'none';
+  console.log("🔹 Loader disembunyikan");
+}
+
+
+// ✅ update showModalPemenang supaya dukung icon
+function showModalPemenang(nama, harga, produk, angkaUnik, icon) {
+  document.getElementById('modalPemenangNama').innerText = "Pemenang: " + nama;
+
+  if (angkaUnik) {
+    document.getElementById('modalPemenangHarga').innerText =
+      "Harga: " + harga + " | Tawar: " + angkaUnik;
+  } else {
+    document.getElementById('modalPemenangHarga').innerText =
+      "Harga: " + harga + " | Tawar: " + angkaUnik;
+  }
+
+  document.getElementById('modalPemenangProduk').innerText = "Produk: " + produk;
+
+  // ✅ tampilkan ikon jika ada
+  const iconEl = document.getElementById('modalPemenangIcon');
+  if (icon) {
+    iconEl.src = icon;
+    iconEl.style.display = "block";
+    iconEl.onerror = () => (iconEl.style.display = "none");
+  } else {
+    iconEl.style.display = "none";
+  }
+}
+
+// ✅ update openLelang agar kirim icon juga
+function openLelang() {
+  console.log("▶ openLelang dipanggil");
+
+  if (!SESSION_USER || !SESSION_USER.nama) {
+    alert("Anda belum login!");
+    return;
+  }
+
+  showLoader();
+
+  gsRun
+    .withSuccessHandler(data => {
+      hideLoader();
+      console.log("✅ openLelang successHandler dipanggil", data);
+
+      if (!data) {
+        console.log("⚠ Tidak ada barang READY atau FALSE");
+        barangAktif = null;
+        document.getElementById("modalLelangInput").style.display = "none";
+        document.getElementById("modalLelangPemenang").style.display = "none";
+        return;
+      }
+
+      barangAktif = {
+        nama: data.nama,
+        hargaSekarang: data.hargaSekarang,
+        hargaTicket: data.hargaTicket,
+        waktuSelesai: data.waktuSelesai,
+        status: data.status,
+        pemenang: data.pemenang,
+        angkaUnik: data.angkaUnik || null,
+        rowIndex: data.rowIndex,
+        icon: data.icon || "" // ✅ ambil icon dari sheet
+      };
+      console.log("📦 Barang aktif:", barangAktif);
+
+      const statusLower = barangAktif.status.toLowerCase();
+
+      if (statusLower === "ready") {
+        // READY → tampilkan modal input
+        document.getElementById("judulBarang").innerText = barangAktif.nama;
+        document.getElementById("hargaBarang").innerText = barangAktif.hargaSekarang;
+
+        const iconEl = document.getElementById("iconBarang");
+        if (barangAktif.icon) {
+          iconEl.src = barangAktif.icon;
+          iconEl.style.display = "block";
+          iconEl.onerror = () => (iconEl.style.display = "none");
+        } else {
+          iconEl.style.display = "none";
+        }
+
+        document.getElementById("modalLelangInput").style.display = "block";
+        document.getElementById("modalLelangPemenang").style.display = "none";
+
+        clearInterval(countdownInterval);
+        if (barangAktif.waktuSelesai) {
+          const deadline = new Date(barangAktif.waktuSelesai);
+          console.log("⏱ Deadline:", deadline);
+          updateCountdown(deadline);
+          countdownInterval = setInterval(() => updateCountdown(deadline), 1000);
+        }
+
+      } else if (statusLower === "false") {
+        // FALSE → tampilkan modal pemenang + icon
+        console.log("🏆 Barang sudah diambil, tampilkan modal pemenang");
+        showModalPemenang(
+          barangAktif.pemenang,
+          barangAktif.hargaSekarang,
+          barangAktif.nama,
+          barangAktif.angkaUnik,
+          barangAktif.icon // ✅ kirim icon ke modal pemenang
+        );
+        document.getElementById("modalLelangInput").style.display = "none";
+        document.getElementById("modalLelangPemenang").style.display = "flex";
+      }
+    })
+    .withFailureHandler(err => {
+      hideLoader();
+      console.error("❌ openLelang failureHandler dipanggil:", err);
+      alert("Error: " + err.message);
+    })
+    .getBarangLelangAktif();
+}
+
+function closeLelang() {
+  document.getElementById("modalLelangInput").style.display = "none";
+}
+
+//percantik modal pemenang
+function launchConfetti() {
+  var duration = 2 * 1000;
+  var end = Date.now() + duration;
+
+  (function frame() {
+    confetti({
+      particleCount: 5,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0 }
+    });
+    confetti({
+      particleCount: 5,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1 }
+    });
+
+    if (Date.now() < end) {
+      requestAnimationFrame(frame);
+    }
+  })();
+}
+
+// Modal pemenang
+function showModalPemenang(nama, harga, produk, angkaUnik, icon = "") {
+  document.getElementById("modalPemenangNama").innerText = "Pemenang: " + nama;
+
+  if (angkaUnik) {
+    document.getElementById("modalPemenangHarga").innerText =
+      "Harga: " + harga + " | Tawar: " + angkaUnik;
+  } else {
+    document.getElementById("modalPemenangHarga").innerText =
+      "Harga: " + harga + " | Tawar: " + angkaUnik;
+  }
+
+  document.getElementById("modalPemenangProduk").innerText = "Produk: " + produk;
+
+  const iconEl = document.getElementById("modalPemenangIcon");
+  if (icon && iconEl) {
+    iconEl.src = icon;
+    iconEl.style.display = "block";
+    iconEl.onerror = () => (iconEl.style.display = "none");
+  } else if (iconEl) {
+    iconEl.style.display = "none";
+  }
+
+  // ✅ Luncurkan confetti
+  launchConfetti();
+}
+
+function closeModalPemenang() {
+  document.getElementById("modalLelangPemenang").style.display = "none";
+}
+
+function tutupLelang() {
+  document.getElementById("closeLelang").style.display = "none";
+}
+
+
+// Update countdown
+function updateCountdown(deadline) {
+  const el = document.getElementById("countdown");
+  if (!el) return;
+
+  const now = new Date();
+  const selisih = deadline - now;
+
+  if (selisih <= 0) {
+    el.innerText = "Lelang Selesai!";
+    clearInterval(countdownInterval);
+
+    const btnKirim = document.getElementById("btnKirim");
+    const btnAmbil = document.getElementById("btnAmbil");
+    if (btnKirim) btnKirim.disabled = true;
+    if (btnAmbil) btnAmbil.disabled = true;
+    return;
+  }
+
+  const jam   = Math.floor(selisih / (1000 * 60 * 60));
+  const menit = Math.floor((selisih % (1000 * 60 * 60)) / (1000 * 60));
+  const detik = Math.floor((selisih % (1000 * 60)) / 1000);
+
+  el.innerText = `${jam}j ${menit}m ${detik}s`;
+}
+
+// Ambil Barang
+function ambilBarang() {
+  // ✅ Pastikan user login
+  if (!SESSION_USER) {
+    SESSION_USER = JSON.parse(localStorage.getItem("SESSION_USER") || "null");
+  }
+
+  const namaUser = SESSION_USER?.nama || SESSION_USER;
+  if (!namaUser) {
+    alert("Anda belum login!");
+    return;
+  }
+
+  // ✅ Validasi saldo cukup langsung di UI
+  const saldoUser = Number(SESSION_USER?.saldo || 0);
+  const hargaBarangAwal = Number(window.BARANG_AKTIF?.hargaBarangAwal || 0);
+
+  if (saldoUser < hargaBarangAwal) {
+    const kurang = hargaBarangAwal - saldoUser;
+    alert(
+      `❌ Saldo kamu kurang ${kurang.toLocaleString()} untuk ambil barang ini.\n` +
+      `Saldo sekarang: ${saldoUser.toLocaleString()}, perlu: ${hargaBarangAwal.toLocaleString()}`
+    );
+    return;
+  }
+
+  // ✅ Validasi poin minimal (selalu 50 untuk sistem tebus & mystery box)
+  const poinUser = Number(SESSION_USER?.poin || 0);
+  const poinMinimal = 50;
+
+  if (poinUser < poinMinimal) {
+    const kurang = poinMinimal - poinUser;
+    alert(
+      `❌ Poin kamu kurang ${kurang} untuk ambil barang ini.\n` +
+      `Poin sekarang: ${poinUser}, minimal perlu: ${poinMinimal}`
+    );
+    return;
+  }
+
+  // 🚀 Lanjut kirim request ke server
+  showLoader();
+  console.log("▶ ambilBarang dipanggil untuk", namaUser);
+
+  gsRun
+    .withSuccessHandler(res => {
+      hideLoader();
+      console.log("✅ Respons dari server:", res);
+
+      // Tutup modal input (kalau ada)
+      const modalInput = document.getElementById("modalLelangInput");
+      if (modalInput) modalInput.style.display = "none";
+
+      // 🔎 Validasi hasil respons
+      if (!res) {
+        alert("⚠️ Server tidak mengembalikan data.");
+        return;
+      }
+
+      if (!res.sukses) {
+        // Gagal ambil (misal saldo/poin tidak cukup)
+        alert(res.pesan || "❌ Gagal ambil barang.");
+        return;
+      }
+
+      // ✅ Sukses ambil barang
+      alert(res.pesan);
+
+      // Update SESSION_USER
+      SESSION_USER.saldo = res.saldoBaru ?? SESSION_USER.saldo;
+      SESSION_USER.poin  = res.poinBaru ?? SESSION_USER.poin;
+      localStorage.setItem("SESSION_USER", JSON.stringify(SESSION_USER));
+
+      // Update tampilan saldo & poin di UI
+      const saldoEl = document.getElementById("saldoUser");
+      if (saldoEl) saldoEl.textContent = SESSION_USER.saldo.toLocaleString();
+
+      const poinEl = document.getElementById("poinUser");
+      if (poinEl) poinEl.textContent = SESSION_USER.poin;
+
+      // Jika barang sudah habis / status jadi FALSE → buka ulang daftar lelang
+      if (res.status && String(res.status).toLowerCase() === "false") {
+        console.log("🏁 Barang diambil, panggil openLelang()");
+        openLelang();
+      }
+
+      // Tambahkan efek konfeti (opsional)
+      if (typeof showConfetti === "function") {
+        showConfetti();
+      }
+    })
+    .withFailureHandler(err => {
+      hideLoader();
+      console.error("❌ ambilBarang failureHandler:", err);
+      alert("Terjadi kesalahan saat mengambil barang:\n" + (err.message || err));
+    })
+    .ambilBarang(namaUser);
+}
+
+function kirimTebakan() {
+  try {
+    // --- Jika sudah ada proses kirim tebakan berjalan, tolak
+    if (window._kirimTebakanInProgress) {
+      alert("⚠️ Permintaan sebelumnya masih diproses. Mohon tunggu sebentar.");
+      return;
+    }
+
+    const namaUserEl = document.getElementById("namaUser");
+    const inputTebakanEl = document.getElementById("inputTebakan");
+    const btn = document.getElementById("btnKirimTebakan");
+
+    const namaUser = namaUserEl?.textContent?.trim();
+    const tebakan = inputTebakanEl?.value?.trim();
+
+    console.log("▶ [DEBUG UI] tombol diklik:", { namaUser, tebakan });
+
+    if (!namaUser) {
+      alert("❌ Nama user tidak valid. Silakan login ulang.");
+      return;
+    }
+    if (!tebakan) {
+      alert("Masukkan tebakan dulu!");
+      return;
+    }
+
+    // --- Set flag in-progress & tampilkan state loading
+    window._kirimTebakanInProgress = true;
+    if (btn) {
+      btn.disabled = true;
+      btn.classList.add("is-loading");
+    }
+    if (typeof showLoader === "function") showLoader();
+
+    // --- Fallback timeout
+    window._kirimTebakanTimeoutId = setTimeout(function() {
+      console.warn("⚠️ kirimTebakan fallback timeout triggered");
+      window._kirimTebakanInProgress = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.remove("is-loading");
+      }
+      if (typeof hideLoader === "function") hideLoader();
+      alert("Permintaan memakan waktu terlalu lama. Silakan coba lagi.");
+    }, 30000);
+
+    // --- Kirim ke server
+    gsRun
+      .withSuccessHandler(function(res) {
+        clearTimeout(window._kirimTebakanTimeoutId);
+        window._kirimTebakanInProgress = false;
+
+        if (btn) {
+          btn.disabled = false;
+          btn.classList.remove("is-loading");
+        }
+        if (typeof hideLoader === "function") hideLoader();
+
+        console.log("✅ [DEBUG UI] submitTebakan response:", res);
+
+        if (!res || !res.sukses) {
+          alert(res?.pesan || "❌ Gagal mencatat tebakan.");
+          return;
+        }
+
+        // =========================
+        // ✅ UPDATE HARGA REALTIME
+        // =========================
+        const hargaEl = document.getElementById("hargaBarang");
+        if (hargaEl && res.hargaBaru !== undefined) {
+          hargaEl.innerText = res.hargaBaru;
+
+          // optional animasi kecil biar hidup
+          hargaEl.classList.add("flash-update");
+          setTimeout(() => hargaEl.classList.remove("flash-update"), 500);
+        }
+
+        // =========================
+        // ✅ UPDATE POIN
+        // =========================
+        const poinEl = document.getElementById("poinUser");
+        if (poinEl) poinEl.textContent = res.poinBaru;
+
+        // =========================
+        // ✅ REFRESH SALDO OTOMATIS
+        // =========================
+        if (typeof refreshSaldo === "function") {
+          refreshSaldo();
+        }
+
+        // =========================
+        // ✅ RESET INPUT
+        // =========================
+        if (inputTebakanEl) inputTebakanEl.value = "";
+
+        // =========================
+        // ✅ FEEDBACK USER
+        // =========================
+        alert(
+          `✅ Tebakan '${tebakan}' tercatat!\n` +
+          `⭐ Poin sekarang: ${res.poinBaru}\n` +
+          `💰 Saldo sisa: ${res.saldoBaru}\n` +
+          `📉 Harga baru: ${res.hargaBaru}`
+        );
+      })
+      .withFailureHandler(function(err) {
+        clearTimeout(window._kirimTebakanTimeoutId);
+        window._kirimTebakanInProgress = false;
+
+        if (btn) {
+          btn.disabled = false;
+          btn.classList.remove("is-loading");
+        }
+        if (typeof hideLoader === "function") hideLoader();
+
+        console.error("❌ [DEBUG UI] Gagal submitTebakan:", err);
+        alert(err?.message ? `❌ Gagal: ${err.message}` : "❌ Gagal mengirim tebakan. Coba lagi.");
+      })
+      .submitTebakan(namaUser, tebakan);
+
+  } catch (err) {
+    window._kirimTebakanInProgress = false;
+
+    const btn = document.getElementById("btnKirimTebakan");
+    if (btn) btn.disabled = false;
+
+    if (typeof hideLoader === "function") hideLoader();
+
+    console.error("❌ [DEBUG UI] Error di kirimTebakan:", err);
+    alert("Terjadi kesalahan. Coba refresh halaman.");
+  }
+}
+
+function refreshPoinTebakan() {
+  const sessionId = localStorage.getItem("sessionId");
+  if (!sessionId) return;
+
+  gsRun
+    .withSuccessHandler(res => {
+      if (!res || !res.success) return;
+
+      // Update UI poin tebakan
+      const poinTebakanEl = document.getElementById("poinTebakan");
+      const totalPoinEl = document.getElementById("totalPoin");
+      if (poinTebakanEl) poinTebakanEl.textContent = res.poinTebakan;
+      if (totalPoinEl) totalPoinEl.textContent = res.totalPoin;
+    })
+    .withFailureHandler(err => console.error("❌ Gagal update poin tebakan:", err))
+    .updatePoinTebakanUser(sessionId);
+}
+
+function bukaBox(event) {
+  const btn = event?.currentTarget;
+  if (btn) btn.disabled = true;
+
+  const modal = document.getElementById("modalBox");
+  const hadiahEl = document.getElementById("hadiahBox");
+
+  if (!modal || !hadiahEl) {
+    alert("⚠️ Modal atau elemen hadiah tidak ditemukan");
+    if (btn) btn.disabled = false;
+    return;
+  }
+
+  // Animasi suspense
+  hadiahEl.textContent = "📦 Sedang membuka...";
+  modal.style.display = "flex";
+
+  let dots = 0;
+  const suspenseInterval = setInterval(() => {
+    hadiahEl.textContent = "📦 Sedang membuka" + ".".repeat(dots % 4);
+    dots++;
+  }, 300);
+
+  const sessionId = localStorage.getItem("sessionId");
+
+  gsRun
+    .withSuccessHandler(res => {
+      clearInterval(suspenseInterval);
+
+      if (!res || !res.success) {
+        showModal(res?.message || "❌ Gagal buka box.");
+        if (btn) btn.disabled = false;
+        return;
+      }
+
+      // Tampilkan hadiah
+      showModal("🎉 Hadiah Box Hari Ini : " + (res.hadiah || "-"));
+
+      // Update poin di UI
+      const poinEl = document.getElementById("poinUser");
+      if (poinEl) poinEl.textContent = res.poinBaru;
+
+      if (typeof refreshPoinTebakan === "function") refreshPoinTebakan();
+
+      if (btn) btn.disabled = false;
+    })
+    .withFailureHandler(err => {
+      clearInterval(suspenseInterval);
+      console.error("❌ Gagal buka box:", err);
+      showModal("❌ Gagal buka box. Coba lagi.");
+      if (btn) btn.disabled = false;
+    })
+    .bukaMysteryBox(sessionId);
+}
+
+function showModal(hadiah) {
+  const modal = document.getElementById("modalBox");
+  const hadiahEl = document.getElementById("hadiahBox");
+
+  if (modal && hadiahEl) {
+    hadiahEl.textContent = hadiah || "🎁 Hadiah tidak tersedia";
+    modal.style.display = "flex";
+  } else {
+    console.warn("⚠️ Modal atau hadiah element tidak ditemukan");
+    alert(hadiah || "🎁 Anda Mendapat : Hadiah tidak tersedia");
+  }
+}
+
+
+// Tutup modal
+function closeBox() {
+  const modal = document.getElementById("modalBox");
+  if (modal) modal.style.display = "none";
+}
+
+//menampilkan partisipan
+// Variabel global untuk menyimpan data asli agar tidak perlu ambil ulang dari server saat mengetik
+let dataPartisipanAsli = [];
+
+window.openModalPartisipan = function() {
+  const modal = document.getElementById("modalPartisipan");
+  const container = document.getElementById("listPartisipan");
+  const inputCari = document.getElementById("cariNama");
+
+  modal.style.display = "flex";
+  container.innerHTML = "⏳ Sedang memproses data...";
+  if (inputCari) inputCari.value = ""; // Reset kolom pencarian
+
+  gsRun
+    .withSuccessHandler(function(data) {
+      if (!Array.isArray(data)) {
+        container.innerHTML = "❌ Data tidak valid";
+        return;
+      }
+      dataPartisipanAsli = data; // Simpan ke variabel global
+      renderPartisipan(dataPartisipanAsli); // Tampilkan semua
+    })
+    .withFailureHandler(function(err) {
+      container.innerHTML = "❌ Gagal ambil data";
+    })
+    .getPartisipanLelang();
+};
+
+// Fungsi untuk memfilter data saat user mengetik
+window.filterNama = function() {
+  const keyword = document.getElementById("cariNama").value.toLowerCase();
+  
+  const hasilFilter = dataPartisipanAsli.filter(p => 
+    p.nama.toLowerCase().includes(keyword)
+  );
+  
+  renderPartisipan(hasilFilter);
+};
+
+function renderPartisipan(data) {
+  const container = document.getElementById("listPartisipan");
+  
+  if (data.length === 0) {
+    container.innerHTML = "<div style='padding:10px; text-align:center; color:#999;'>📭 Nama tidak ditemukan</div>";
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  data.forEach(p => {
+    const div = document.createElement("div");
+    div.style = "padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; font-size:14px;";
+    div.innerHTML = `
+      <span>${formatTanggal(p.tanggal)} - <b>${p.nama}</b></span>
+      <span style="color:#16a085; font-weight:bold;">${p.tebakan.toLocaleString()}</span>
+    `;
+    fragment.appendChild(div);
+  });
+
+  container.innerHTML = "";
+  container.appendChild(fragment);
+}
+
+window.closeModalPartisipan = function() {
+  document.getElementById("modalPartisipan").style.display = "none";
+};
+
+// format tanggal simpel
+function formatTanggal(tgl){
+  const d = new Date(tgl);
+  return d.toLocaleDateString("id-ID");
+}
+
+</script>
 
 <script>
 // Mendaftarkan File Service Worker Resmi
