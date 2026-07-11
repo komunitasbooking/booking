@@ -3699,7 +3699,7 @@ let SESSION_USER = null; // ✅ Awalnya null
 // ============================================
 // SHIM: pengganti google.script.run yang jalan lewat fetch()
 // ============================================
-var GAS_ENDPOINT = "booking-proxy.kangrouf.workers.dev";
+var GAS_ENDPOINT = "https://booking-proxy.kangrouf.workers.dev";
 
 function makeGsRunShim(endpointUrl) {
   function build(successHandler, failureHandler) {
