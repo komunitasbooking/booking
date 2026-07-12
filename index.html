@@ -2117,8 +2117,8 @@ function dbSelectType(el, val) {
 
     <!-- Konten Modal -->
     <div style="padding:20px;">
-      <label>Password / PIN:</label>
-      <input type="text" id="updPIN" class="form-input modern-input" style="margin-bottom:12px;">
+      <label>PIN Baru (kosongkan jika tidak ganti):</label>
+      <input type="password" id="updPIN" class="form-input modern-input" style="margin-bottom:12px;" autocomplete="new-password">
 
       <label>Nama Lengkap:</label>
       <input type="text" id="updNamaLengkap" class="form-input modern-input" style="margin-bottom:12px;">
@@ -2134,6 +2134,11 @@ function dbSelectType(el, val) {
 
       <label>Hobi</label>
       <input type="text" id="updHobi" class="form-input modern-input" style="margin-bottom:12px;">
+
+      <hr style="margin:16px 0; border-color:#eee;">
+
+      <label>🔐 Konfirmasi PIN Anda Saat Ini (wajib):</label>
+      <input type="password" id="updPINKonfirmasi" class="form-input modern-input" style="margin-bottom:12px;" autocomplete="off">
 
       <button id="btnSimpanData" onclick="simpanUpdateData()" class="btn-save">💾 Simpan Data</button>
     </div>
@@ -6968,21 +6973,22 @@ function simpanUpdateData() {
   const btn = document.getElementById("btnSimpanData");
   const teksAwal = btn.innerHTML;
 
-  const pin = document.getElementById("updPIN").value.trim();
+  const pinBaru = document.getElementById("updPIN").value.trim();
+  const pinKonfirmasi = document.getElementById("updPINKonfirmasi").value.trim();
 
-  if (!pin) {
-    alert("⚠️ PIN wajib diisi!");
-    document.getElementById("updPIN").focus();
+  if (!pinKonfirmasi) {
+    alert("⚠️ Masukkan PIN Anda saat ini untuk konfirmasi perubahan!");
+    document.getElementById("updPINKonfirmasi").focus();
     return;
   }
 
-  // 🔒 Ubah tombol saat proses
   btn.innerHTML = "⏳ Tunggu...";
   btn.disabled = true;
 
   const data = {
     nama: user.nama,
-    pin: pin,
+    pinLama: pinKonfirmasi,      // wajib dicek server
+    pinBaru: pinBaru,            // opsional, kosong = tidak ganti PIN
     namaLengkap: document.getElementById("updNamaLengkap").value.trim(),
     wa: document.getElementById("updWA").value.trim(),
     alamat: document.getElementById("updAlamat").value.trim(),
@@ -6993,18 +6999,15 @@ function simpanUpdateData() {
   gsRun
     .withSuccessHandler(function(msg) {
       alert(msg);
-
-      // 🔓 Kembalikan tombol
       btn.innerHTML = teksAwal;
       btn.disabled = false;
-
+      document.getElementById("updPINKonfirmasi").value = "";
+      document.getElementById("updPIN").value = "";
       closeModalUpdate();
     })
     .withFailureHandler(function(err) {
-
       btn.innerHTML = teksAwal;
       btn.disabled = false;
-
       alert("❌ Gagal menyimpan data.");
       console.error(err);
     })
