@@ -3226,7 +3226,6 @@ function dbSelectType(el, val) {
   </div>
 </div>
 
-
  <!-- ---------------- Modal Input Lomba Lengkap ---------------- -->
 <div id="modalLomba" style="
   display: none;
@@ -3236,7 +3235,7 @@ function dbSelectType(el, val) {
   background: rgba(0,0,0,0.5);
   justify-content: center; align-items: center;
   z-index: 99;
-">
+  ">
   <div style="
     background: white;
     padding: 18px;
@@ -3265,6 +3264,20 @@ function dbSelectType(el, val) {
       box-sizing:border-box;
       font-size:14px;
     ">
+    <!-- Mentor -->
+    <label for="mentorInput" style="font-size:13px; color:#555;">Nama Mentor <span style="color:#e74c3c;">*</span></label>
+    <input id="mentorInput" list="daftarMentorList" type="text" placeholder="Ketik nama mentor terdaftar..." required style="
+      width:100%;
+      padding:8px 10px;
+      margin-top:6px;
+      margin-bottom:10px;
+      border-radius:8px;
+      border:1px solid #ddd;
+      box-sizing:border-box;
+      font-size:14px;
+    ">
+    <datalist id="daftarMentorList"></datalist>
+    <small id="mentorHint" style="display:block; margin:-6px 0 10px; font-size:11px; color:#999;"></small>
 
     <!-- Skor / Kill -->
     <div style="display:flex; gap:8px; margin-bottom:10px;">
@@ -3315,7 +3328,7 @@ function dbSelectType(el, val) {
     </div>
 
     <!-- Tombol Kirim -->
-<button id="btnKirim" 
+    <button id="btnKirim" 
       onclick="this.disabled=true; this.textContent='⏳ Tunggu / Load Ulang'; submitLaporan();" 
       style="
         width: 100%;
@@ -3326,7 +3339,11 @@ function dbSelectType(el, val) {
       onmouseout="this.style.transform='scale(1)'">
       📤 Kirim
     </button>
-
+  <!-- ====== PANEL APPROVAL MENTOR (hanya tampil jika user adalah mentor) ====== -->
+    <div id="panelApprovalMentor" style="display:none; margin-top:18px; border-top:1px solid #eee; padding-top:12px;">
+      <h4 style="margin:0 0 8px; font-size:14px; color:#333;">🧑‍🏫 Menunggu Persetujuan Anda</h4>
+      <div id="listApprovalMentor" style="max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
   </div>
 </div>
 
@@ -7358,6 +7375,20 @@ function openLombaForm(){
   document.getElementById('scoreYou').value = '';
   document.getElementById('scoreOpp').value = '';
   document.getElementById('noteInput').value = '';
+  document.getElementById('mentorInput').value = '';
+  document.getElementById('mentorHint').textContent = '';
+  muatDaftarNamaUntukMentor();
+  cekDanTampilkanPanelMentor();
+}
+
+function muatDaftarNamaUntukMentor(){
+  gsRun
+    .withSuccessHandler(namaList => {
+      const dl = document.getElementById('daftarMentorList');
+      dl.innerHTML = namaList.map(n => `<option value="${n}">`).join('');
+    })
+    .withFailureHandler(err => console.error('Gagal muat daftar nama:', err))
+    .getDaftarNamaUser();
 }
 
 function submitLaporan() {
@@ -7422,6 +7453,8 @@ function prosesSubmit(btn) {
       const gameElem = document.getElementById('gameInput');
       const hasilRadio = document.querySelector('input[name="hasilLomba"]:checked');
       const game = gameElem?.value.trim() || '';
+      const mentorElem = document.getElementById('mentorInput');
+      const mentor = mentorElem?.value.trim() || '';
 
       if (!hasilRadio || !game) {
         Swal.fire('⚠️ Lengkapi form', 'Isi game dan pilih hasil', 'warning');
@@ -7432,6 +7465,7 @@ function prosesSubmit(btn) {
       const data = {
         nama: document.getElementById('namaPemainLomba')?.textContent.replace('Pemain: ', '').trim() || user.nama,
         game,
+        mentor,
         hasil: hasilRadio.value,
         skorAnda: document.getElementById('scoreYou')?.value || "0",
         skorLawan: document.getElementById('scoreOpp')?.value || "0",
@@ -7478,6 +7512,7 @@ function closeModalLomba() {
   document.getElementById('modalLomba').style.display = 'none';
 }
 </script>
+
 <script>
 let hadiahDipilih = null;
 
