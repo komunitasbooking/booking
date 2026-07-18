@@ -1,10 +1,10 @@
-const CACHE_NAME = 'booking-cache-v6'; 
+const CACHE_NAME = 'booking-cache-v7'; 
 
-// 1. TAMBAHKAN QUERY STRING (?v=6) untuk memaksa bypass HTTP Cache browser saat install
+// 1. TAMBAHKAN QUERY STRING (?v=7) untuk memaksa bypass HTTP Cache browser saat install
 const urlsToCache = [
-  './?v=6', 
-  'index.html?v=6', 
-  'manifest.json?v=6'
+  './?v=7', 
+  'index.html?v=7', 
+  'manifest.json?v=7'
 ];
 
 self.addEventListener('install', event => {
