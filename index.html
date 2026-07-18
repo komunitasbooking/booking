@@ -7423,7 +7423,9 @@ function submitLaporan() {
 function prosesSubmit(btn) {
   console.log("🔵 Memasuki prosesSubmit...");
 
+  // Fungsi Reset Lokal
   const resetBtn = () => {
+    console.log("🟢 Reset tombol dipanggil");
     if (!btn) return;
     btn.disabled = false;
     btn.innerHTML = btn.dataset.originalText || "📤 Kirim";
@@ -7432,12 +7434,51 @@ function prosesSubmit(btn) {
     btn.dataset.loading = "0"; 
   };
 
+  // 1. VALIDASI LOGIN
   if (typeof user === 'undefined' || !user || !user.nama) {
     Swal.fire('⚠️ Tidak bisa laporan', 'Silakan login terlebih dahulu.', 'warning');
     resetBtn();
     return;
   }
 
+  // 2. AMBIL DAN VALIDASI DATA FORM (Ditarik ke atas agar dicek duluan)
+  const gameElem = document.getElementById('gameInput');
+  const mentorElem = document.getElementById('mentorInput');
+  const hasilRadio = document.querySelector('input[name="hasilLomba"]:checked');
+  
+  const game = gameElem?.value.trim() || '';
+  const mentor = mentorElem?.value.trim() || '';
+
+  // Validasi Game dan Hasil Pertandingan
+  if (!hasilRadio || !game) {
+    Swal.fire('⚠️ Lengkapi form', 'Isi game dan pilih hasil pertandingan.', 'warning');
+    resetBtn();
+    return;
+  }
+
+  // Validasi Mentor (Solusi Utama Eror Anda)
+  if (!mentor) {
+    Swal.fire('⚠️ Mentor Wajib Diisi', 'Silakan ketik atau pilih nama mentor terdaftar.', 'warning');
+    resetBtn();
+    return;
+  }
+
+  // Ambil Nama Pemain dari Modal Element teks
+  const namaPemainText = document.getElementById('namaPemainLomba')?.textContent || '';
+  const namaPemain = namaPemainText.replace('Pemain: ', '').trim() || user.nama;
+
+  // susun objek data yang siap dikirim
+  const data = {
+    nama: namaPemain,
+    game: game,
+    mentor: mentor,
+    hasil: hasilRadio.value,
+    skorAnda: document.getElementById('scoreYou')?.value || "0",
+    skorLawan: document.getElementById('scoreOpp')?.value || "0",
+    note: document.getElementById('noteInput')?.value.trim() || ""
+  };
+
+  // 3. PROSES CEK BOOKING KE SERVER
   console.log("📡 Mengirim permintaan ke server...");
   gsRun
     .withSuccessHandler(bookingSisa => {
@@ -7448,46 +7489,7 @@ function prosesSubmit(btn) {
         return;
       }
 
-      const gameElem = document.getElementById('gameInput');
-      const mentorElem = document.getElementById('mentorInput');
-      const hasilRadio = document.querySelector('input[name="hasilLomba"]:checked');
-
-      const game = gameElem?.value.trim() || '';
-      const mentor = mentorElem?.value.trim() || '';
-
-      // 🔍 DEBUG: log detail elemen & nilai mentor sebelum validasi
-      console.log('🔍 DEBUG mentorElem ditemukan?', !!mentorElem);
-      console.log('🔍 DEBUG nilai mentor terbaca:', JSON.stringify(mentor));
-
-      // Validasi dipisah per field supaya pesan error jelas
-      if (!game) {
-        Swal.fire('⚠️ Lengkapi form', 'Nama game belum diisi.', 'warning');
-        resetBtn();
-        return;
-      }
-      if (!mentor) {
-        Swal.fire('⚠️ Lengkapi form', 'Nama mentor belum diisi.', 'warning');
-        resetBtn();
-        return;
-      }
-      if (!hasilRadio) {
-        Swal.fire('⚠️ Lengkapi form', 'Pilih hasil pertandingan (Menang/Seri/Kalah).', 'warning');
-        resetBtn();
-        return;
-      }
-
-      const data = {
-        nama: document.getElementById('namaPemainLomba')?.textContent.replace('Pemain: ', '').trim() || user.nama,
-        game,
-        mentor,
-        hasil: hasilRadio.value,
-        skorAnda: document.getElementById('scoreYou')?.value || "0",
-        skorLawan: document.getElementById('scoreOpp')?.value || "0",
-        note: document.getElementById('noteInput')?.value.trim() || ""
-      };
-
-      console.log('🔍 DEBUG data lengkap yang dikirim ke server:', JSON.stringify(data));
-
+      // Tampilkan Loading SweetAlert setelah lolos cek booking
       Swal.fire({
         title: '⏳ Mengirim...',
         text: 'Sedang menyimpan laporan Anda',
@@ -7495,6 +7497,7 @@ function prosesSubmit(btn) {
         didOpen: () => Swal.showLoading()
       });
 
+      // 4. PROSES SIMPAN DATA KE SERVER
       gsRun
         .withSuccessHandler(msg => {
           console.log("🎉 Berhasil disimpan:", msg);
@@ -7513,7 +7516,7 @@ function prosesSubmit(btn) {
           Swal.fire({ icon: 'error', title: '❌ Gagal', text: err?.message || 'Gagal menyimpan.' });
           resetBtn();
         })
-        .simpanDataLomba(data);
+        .simpanDataLomba(data); // Mengirim objek data yang sudah divalidasi di atas
     })
     .withFailureHandler(err => {
       console.error("❌ Gagal cek booking:", err);
