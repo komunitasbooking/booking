@@ -7331,205 +7331,7 @@ function refreshSaldo() {
     .getSaldoDanWaktu(nama);
 }
 </script>
-<script>
-function getCurrentGame(){
-  try {
-    const game = (window.currentBooking && window.currentBooking.game) ||
-           (window.booking && window.booking.game) ||
-           (window.activeBooking && window.activeBooking.game) ||
-           (window.sessionBooking && window.sessionBooking.game) ||
-           document.getElementById('gameInput')?.value ||
-           document.getElementById('jenis')?.value || 
-           '';
-    console.log('getCurrentGame:', game);
-    return game;
-  } catch(e){ 
-    console.error('Error di getCurrentGame:', e);
-    return ''; 
-  }
-}
 
-function openLombaForm(){
-  console.log('openLombaForm dipanggil');
-  console.log('user:', user);
-  console.log('SESSION_USER:', SESSION_USER);
-
-  document.getElementById('modalLomba').style.display = 'flex';
-
-  let playerName = 'Guest';
-  if (user && user.nama) {
-    playerName = user.nama;
-  } else if (typeof SESSION_USER === 'string') {
-    playerName = SESSION_USER;
-  } else if (SESSION_USER && SESSION_USER.nama) {
-    playerName = SESSION_USER.nama;
-  }
-
-  document.getElementById('namaPemainLomba').innerHTML = "Pemain: <b>" + playerName + "</b>";
-
-  const guessGame = getCurrentGame();
-  if (guessGame) document.getElementById('gameInput').value = guessGame;
-
-  document.getElementById('scoreYou').value = '';
-  document.getElementById('scoreOpp').value = '';
-  document.getElementById('noteInput').value = '';
-  document.getElementById('mentorInput').value = '';
-  document.getElementById('mentorHint').textContent = '';
-
-  // 🔍 DEBUG: cek apakah ada id="mentorInput" duplikat di DOM
-  const semuaMentorInput = document.querySelectorAll('#mentorInput');
-  if (semuaMentorInput.length > 1) {
-    console.warn('⚠️ DITEMUKAN', semuaMentorInput.length, 'elemen dengan id="mentorInput"! Ini penyebab bug — cek HTML, kemungkinan modal ter-include dua kali.');
-  }
-
-  muatDaftarNamaUntukMentor();
-  cekDanTampilkanPanelMentor();
-}
-
-function muatDaftarNamaUntukMentor(){
-  gsRun
-    .withSuccessHandler(namaList => {
-      const dl = document.getElementById('daftarMentorList');
-      if (dl) dl.innerHTML = namaList.map(n => `<option value="${n}">`).join('');
-    })
-    .withFailureHandler(err => console.error('Gagal muat daftar nama:', err))
-    .getDaftarNamaUser();
-}
-
-function submitLaporan() {
-  console.log("🟡 Memulai submitLaporan...");
-  const btn = document.getElementById('btnKirim');
-  if (!btn) return;
-
-  if (btn.dataset.loading === "1") {
-    console.warn("⏳ Proses masih berjalan...");
-    return;
-  }
-
-  try {
-    btn.dataset.loading = "1";
-    btn.dataset.originalText = "📤 Kirim"; 
-    btn.disabled = true;
-    btn.innerHTML = "⏳ Mengirim...";
-    prosesSubmit(btn);
-  } catch (err) {
-    console.error("❌ Fatal Error di submitLaporan:", err);
-    btn.disabled = false;
-    btn.innerHTML = "📤 Kirim";
-    btn.dataset.loading = "0";
-  }
-}
-
-function prosesSubmit(btn) {
-  console.log("🔵 Memasuki prosesSubmit...");
-
-  // Fungsi Reset Lokal
-  const resetBtn = () => {
-    console.log("🟢 Reset tombol dipanggil");
-    if (!btn) return;
-    btn.disabled = false;
-    btn.innerHTML = btn.dataset.originalText || "📤 Kirim";
-    btn.style.opacity = "1";
-    btn.style.cursor = "pointer";
-    btn.dataset.loading = "0"; 
-  };
-
-  // 1. VALIDASI LOGIN
-  if (typeof user === 'undefined' || !user || !user.nama) {
-    Swal.fire('⚠️ Tidak bisa laporan', 'Silakan login terlebih dahulu.', 'warning');
-    resetBtn();
-    return;
-  }
-
-  // 2. AMBIL DAN VALIDASI DATA FORM (Ditarik ke atas agar dicek duluan)
-  const gameElem = document.getElementById('gameInput');
-  const mentorElem = document.getElementById('mentorInput');
-  const hasilRadio = document.querySelector('input[name="hasilLomba"]:checked');
-  
-  const game = gameElem?.value.trim() || '';
-  const mentor = mentorElem?.value.trim() || '';
-
-  // Validasi Game dan Hasil Pertandingan
-  if (!hasilRadio || !game) {
-    Swal.fire('⚠️ Lengkapi form', 'Isi game dan pilih hasil pertandingan.', 'warning');
-    resetBtn();
-    return;
-  }
-
-  // Validasi Mentor (Solusi Utama Eror Anda)
-  if (!mentor) {
-    Swal.fire('⚠️ Mentor Wajib Diisi', 'Silakan ketik atau pilih nama mentor terdaftar.', 'warning');
-    resetBtn();
-    return;
-  }
-
-  // Ambil Nama Pemain dari Modal Element teks
-  const namaPemainText = document.getElementById('namaPemainLomba')?.textContent || '';
-  const namaPemain = namaPemainText.replace('Pemain: ', '').trim() || user.nama;
-
-  // susun objek data yang siap dikirim
-  const data = {
-    nama: namaPemain,
-    game: game,
-    mentor: mentor,
-    hasil: hasilRadio.value,
-    skorAnda: document.getElementById('scoreYou')?.value || "0",
-    skorLawan: document.getElementById('scoreOpp')?.value || "0",
-    note: document.getElementById('noteInput')?.value.trim() || ""
-  };
-
-  // 3. PROSES CEK BOOKING KE SERVER
-  console.log("📡 Mengirim permintaan ke server...");
-  gsRun
-    .withSuccessHandler(bookingSisa => {
-      console.log("✅ Server merespon cek booking:", bookingSisa);
-      if (bookingSisa === null || bookingSisa <= 0) {
-        Swal.fire('⚠️ Tidak bisa laporan', 'Anda harus memiliki booking aktif.', 'warning');
-        resetBtn();
-        return;
-      }
-
-      // Tampilkan Loading SweetAlert setelah lolos cek booking
-      Swal.fire({
-        title: '⏳ Mengirim...',
-        text: 'Sedang menyimpan laporan Anda',
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
-      });
-
-      // 4. PROSES SIMPAN DATA KE SERVER
-      gsRun
-        .withSuccessHandler(msg => {
-          console.log("🎉 Berhasil disimpan:", msg);
-          Swal.fire({
-            icon: 'success',
-            title: '✅ Berhasil',
-            text: msg,
-            timer: 1500,
-            showConfirmButton: false
-          });
-          if (typeof closeModalLomba === "function") closeModalLomba();
-          resetBtn(); 
-        })
-        .withFailureHandler(err => {
-          console.error("❌ Gagal simpan:", err);
-          Swal.fire({ icon: 'error', title: '❌ Gagal', text: err?.message || 'Gagal menyimpan.' });
-          resetBtn();
-        })
-        .simpanDataLomba(data); // Mengirim objek data yang sudah divalidasi di atas
-    })
-    .withFailureHandler(err => {
-      console.error("❌ Gagal cek booking:", err);
-      Swal.fire('❌ Error', 'Gagal cek booking: ' + (err?.message || err), 'error');
-      resetBtn();
-    })
-    .getTotalDurasiBooking(user.nama);
-}
-
-function closeModalLomba() {
-  document.getElementById('modalLomba').style.display = 'none';
-}
-</script>
 
 <script>
 let hadiahDipilih = null;
@@ -8204,6 +8006,20 @@ function openLombaForm(){
   document.getElementById('scoreYou').value = '';
   document.getElementById('scoreOpp').value = '';
   document.getElementById('noteInput').value = '';
+  document.getElementById('mentorInput').value = '';
+  document.getElementById('mentorHint').textContent = '';
+  muatDaftarNamaUntukMentor();
+  cekDanTampilkanPanelMentor();
+}
+
+function muatDaftarNamaUntukMentor(){
+  gsRun
+    .withSuccessHandler(namaList => {
+      const dl = document.getElementById('daftarMentorList');
+      dl.innerHTML = namaList.map(n => `<option value="${n}">`).join('');
+    })
+    .withFailureHandler(err => console.error('Gagal muat daftar nama:', err))
+    .getDaftarNamaUser();
 }
 
 function submitLaporan() {
@@ -8268,6 +8084,8 @@ function prosesSubmit(btn) {
       const gameElem = document.getElementById('gameInput');
       const hasilRadio = document.querySelector('input[name="hasilLomba"]:checked');
       const game = gameElem?.value.trim() || '';
+      const mentorElem = document.getElementById('mentorInput');
+      const mentor = mentorElem?.value.trim() || '';
 
       if (!hasilRadio || !game) {
         Swal.fire('⚠️ Lengkapi form', 'Isi game dan pilih hasil', 'warning');
@@ -8278,6 +8096,7 @@ function prosesSubmit(btn) {
       const data = {
         nama: document.getElementById('namaPemainLomba')?.textContent.replace('Pemain: ', '').trim() || user.nama,
         game,
+        mentor,
         hasil: hasilRadio.value,
         skorAnda: document.getElementById('scoreYou')?.value || "0",
         skorLawan: document.getElementById('scoreOpp')?.value || "0",
@@ -8324,6 +8143,7 @@ function closeModalLomba() {
   document.getElementById('modalLomba').style.display = 'none';
 }
 </script>
+
 <style>
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
