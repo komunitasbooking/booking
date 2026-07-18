@@ -8142,6 +8142,71 @@ function prosesSubmit(btn) {
 function closeModalLomba() {
   document.getElementById('modalLomba').style.display = 'none';
 }
+
+function cekDanTampilkanPanelMentor(){
+  let namaUser = (user && user.nama) || (typeof SESSION_USER === 'string' ? SESSION_USER : SESSION_USER?.nama) || '';
+  if (!namaUser) return;
+
+  gsRun
+    .withSuccessHandler(isMentor => {
+      const panel = document.getElementById('panelApprovalMentor');
+      if (!panel) return;
+      if (!isMentor) { panel.style.display = 'none'; return; }
+      panel.style.display = 'block';
+      muatDaftarApproval(namaUser);
+    })
+    .withFailureHandler(err => console.error('Gagal cek status mentor:', err))
+    .getIsMentor(namaUser);
+}
+
+function muatDaftarApproval(namaMentor){
+  const list = document.getElementById('listApprovalMentor');
+  if (!list) return;
+  list.innerHTML = '<p style="font-size:13px;color:#999;">Memuat...</p>';
+
+  gsRun
+    .withSuccessHandler(items => {
+      if (!items || items.length === 0) {
+        list.innerHTML = '<p style="font-size:13px;color:#999;">Tidak ada laporan menunggu.</p>';
+        return;
+      }
+      list.innerHTML = items.map(it => `
+        <div class="cardApproval" style="border:1px solid #eee; border-radius:8px; padding:8px 10px; font-size:13px;">
+          <div><b>${it.nama}</b> — ${it.game} <span style="color:#888;">(${it.tanggal})</span></div>
+          <div>Hasil: <b>${it.hasil}</b> | Skor: ${it.skor}</div>
+          ${it.keterangan ? `<div style="color:#666;">📝 ${it.keterangan}</div>` : ''}
+          <div style="margin-top:6px; display:flex; gap:6px;">
+            <button onclick="prosesApproval('${it.id}','approve',this)" style="flex:1; background:#2ecc71; color:#fff; border:none; border-radius:6px; padding:6px; cursor:pointer;">✅ Setuju</button>
+            <button onclick="prosesApproval('${it.id}','reject',this)" style="flex:1; background:#e74c3c; color:#fff; border:none; border-radius:6px; padding:6px; cursor:pointer;">❌ Tolak</button>
+          </div>
+        </div>
+      `).join('');
+    })
+    .withFailureHandler(err => {
+      list.innerHTML = '<p style="font-size:13px;color:#e74c3c;">Gagal memuat daftar.</p>';
+      console.error(err);
+    })
+    .getPendingApprovalForMentor(namaMentor);
+}
+
+function prosesApproval(id, aksi, btn){
+  const card = btn.closest('.cardApproval');
+  const buttons = card.querySelectorAll('button');
+  buttons.forEach(b => b.disabled = true);
+
+  const fnName = aksi === 'approve' ? 'approveLomba' : 'rejectLomba';
+
+  gsRun
+    .withSuccessHandler(msg => {
+      Swal.fire({ icon: 'success', title: msg, timer: 1200, showConfirmButton: false });
+      card.remove();
+    })
+    .withFailureHandler(err => {
+      Swal.fire({ icon: 'error', title: '❌ Gagal', text: err?.message || 'Terjadi kesalahan.' });
+      buttons.forEach(b => b.disabled = false);
+    })
+    [fnName](id);
+}
 </script>
 
 <style>
