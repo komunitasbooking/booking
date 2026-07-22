@@ -6798,23 +6798,26 @@ function showBookingList(data) {
   const tbody = document.getElementById("bookingList");
   tbody.innerHTML = "";
 
+  // BARU: suntik animasi glow/melayang sekali saja
+  if (!document.getElementById('styleBookingAktif')) {
+    const style = document.createElement('style');
+    style.id = 'styleBookingAktif';
+    style.textContent = `
+      @keyframes pulseGlow {
+        0%   { box-shadow: 0 0 4px currentColor; transform: translateY(0); }
+        50%  { box-shadow: 0 0 14px currentColor; transform: translateY(-2px); }
+        100% { box-shadow: 0 0 4px currentColor; transform: translateY(0); }
+      }
+      .card-booking-aktif { animation: pulseGlow 1.6s ease-in-out infinite; }
+    `;
+    document.head.appendChild(style);
+  }
+
   const now = new Date();
 
   // 🔹 Mapping nama tampil
-  const namaJenis = {
-    HP: "REGULER",
-    PS2: "VIP",
-    PS3: "VVIP",
-    PS4: "ULTRA VIP"
-  };
-
-  // 🔹 Warna tiap tier
-  const warnaJenis = {
-    HP: "#bdc3c7",
-    PS2: "#3498db",
-    PS3: "#9b59b6",
-    PS4: "#f1c40f"
-  };
+  const namaJenis = { HP: "REGULER", PS2: "VIP", PS3: "VVIP", PS4: "ULTRA VIP" };
+  const warnaJenis = { HP: "#bdc3c7", PS2: "#3498db", PS3: "#9b59b6", PS4: "#f1c40f" };
 
   const dataAktif = data
     .map(row => {
@@ -6824,11 +6827,10 @@ function showBookingList(data) {
       const [tahun, bulan, tanggal] = row.tanggal.split("-").map(Number);
       const durasiMenit = parseInt(row.durasi);
 
-      if ([jam, menit, year = tahun, bulan, tanggal, durasiMenit].some(isNaN)) return null;
+      if ([jam, menit, tahun, bulan, tanggal, durasiMenit].some(isNaN)) return null;
 
       const startTime = new Date(tahun, bulan - 1, tanggal, jam, menit);
       const endTime = new Date(startTime.getTime() + durasiMenit * 60000);
-
       const isPlaying = now >= startTime && now <= endTime;
       return { ...row, startTime, endTime, isPlaying };
     })
@@ -6845,10 +6847,17 @@ function showBookingList(data) {
     dataAktif.forEach(row => {
       const endStr = row.endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
       const statusBadge = row.isPlaying ? "🔥 SEDANG MAIN" : "⏳ MENUNGGU";
-      const bgCard = row.isPlaying ? "background: rgba(46, 204, 113, 0.12); border: 1px solid #2ecc71;" : "background: #2c2c3e; border: 1px solid #444;";
 
-      // PERBAIKAN UTAMA: Mengganti struktur 'tr' 6 kolom menyamping menjadi Kartu Flexbox Mini Tingkat 2
+      // BARU: border kustom user (fallback default kalau belum ada)
+      const borderCSS = BORDER_STYLES[row.border] || BORDER_STYLES.border_default;
+
+      const bgCard = row.isPlaying
+        ? `background: rgba(46, 204, 113, 0.12); border: ${borderCSS};`
+        : `background: #2c2c3e; border: ${borderCSS};`;
+
       const card = document.createElement("div");
+      // BARU: tambah class animasi hanya kalau sesi sedang berjalan
+      card.className = row.isPlaying ? "card-booking-aktif" : "";
       card.style.cssText = `
         display: flex;
         flex-direction: column;
@@ -6858,51 +6867,23 @@ function showBookingList(data) {
         border-radius: 8px;
         width: 100%;
         box-sizing: border-box;
+        color: ${row.isPlaying ? (BORDER_STYLES[row.border] || "#2ecc71").split(" ").pop() : "inherit"};
       `;
 
       card.innerHTML = `
-        <!-- Baris Atas: Nama & Status Badge -->
         <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
-
-          <div style="
-            font-weight:bold;
-            color:#fff;
-            font-size:13px;
-            word-break:break-word;
-            max-width:55%;">
+          <div style="font-weight:bold; color:#fff; font-size:13px; word-break:break-word; max-width:55%;">
             ${row.nama}
           </div>
-
           <div style="display:flex;align-items:center;gap:8px;">
-
-          <button
-            class="btnSuara"
-            data-nama="${row.nama}"
-            title="${suaraAktif[row.nama] ? 'Suara aktif' : 'Aktifkan suara'}"
-            style="
-              background:none;
-              border:none;
-              cursor:pointer;
-              font-size:20px;">
-            ${suaraAktif[row.nama] ? "🔔" : "🔇"}
-          </button>
-
-            <div style="
-              font-size:10px;
-              font-weight:bold;
-              color:${row.isPlaying ? '#2ecc71' : '#f1c40f'};
-              background:rgba(0,0,0,0.3);
-              padding:3px 6px;
-              border-radius:4px;
-              letter-spacing:.5px;">
+            <button class="btnSuara" data-nama="${row.nama}" title="${suaraAktif[row.nama] ? 'Suara aktif' : 'Aktifkan suara'}" style="background:none; border:none; cursor:pointer; font-size:20px;">
+              ${suaraAktif[row.nama] ? "🔔" : "🔇"}
+            </button>
+            <div style="font-size:10px; font-weight:bold; color:${row.isPlaying ? '#2ecc71' : '#f1c40f'}; background:rgba(0,0,0,0.3); padding:3px 6px; border-radius:4px; letter-spacing:.5px;">
               ${statusBadge}
             </div>
-
           </div>
-
         </div>
-
-        <!-- Baris Bawah: Detail Informasi Gabungan (Hemat Ruang) -->
         <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 11px; color: #bbb; border-top: 1px solid rgba(250,250,250,0.06); padding-top: 6px;">
           <div>Tier: <span style="font-weight:bold; color:${warnaJenis[row.jenis] || '#fff'}">${namaJenis[row.jenis] || row.jenis}</span></div>
           <div style="color: #666;">•</div>
@@ -6916,7 +6897,6 @@ function showBookingList(data) {
 
       tbody.appendChild(card);
       const btn = card.querySelector(".btnSuara");
-
       btn.onclick = function () {
         toggleSuara(row.nama, this);
       };
@@ -6986,7 +6966,7 @@ function tampilkanModalBooking() {
   const modal = document.getElementById("bookingModal");
   if (modal) modal.style.display = "flex";
 
-  gsRun.withSuccessHandler(showBookingList).getBookingData();
+  gsRun.withSuccessHandler(showBookingList).getBookingDataDenganKostum(); // sebelumnya .getBookingData()
 }
 
 function tutupModal() {
