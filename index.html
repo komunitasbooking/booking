@@ -6273,7 +6273,7 @@ function openHallOfFame() {
 
         html += `<li style="margin:10px 0; padding:12px 16px; border-radius:12px; ${highlightStyle} display:flex; justify-content:space-between; align-items:center; gap:12px; font-size:14px; font-weight:500; overflow:hidden;">
           <span onclick="window.open('${bioUrl}', '_blank')" style="flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;" title="Lihat bio ${row.nama}">
-            <b style="text-decoration:underline;">${row.nama}</b> <span style="color:#333; font-weight:normal;">– ${row.gelar}</span>
+            <b>${row.nama}</b> <span style="color:#333; font-weight:normal;">– ${row.gelar}</span>
           </span>
           <span style="color:#666; font-size:12px; font-weight:400; flex-shrink:0; white-space:nowrap;">
             📅 ${row.periode}
