@@ -6796,57 +6796,75 @@ function toggleSuara(nama, tombol) {
 function showBookingList(data) {
   dataBookingTerakhir = data || [];
   const tbody = document.getElementById("bookingList");
+  if (!tbody) return console.error("❌ Elemen #bookingList tidak ditemukan di HTML!");
+  
   tbody.innerHTML = "";
 
   // BARU: peta pet -> class animasi
   const PET_ANIMASI_CLASS = {
     pet_50: "pet-border-elang",
-    pet_75: "pet-border-singa",
-    pet_100: "pet-border-naga"
+    pet_100: "pet-border-singa",
+    pet_200: "pet-border-naga"
   };
+
+  const BORDER_COLORS = {
+    border_default: "#dddddd",
+    border_50: "#cd7f32",
+    border_100: "#c0c0c0",
+    border_200: "#ffd700"
+  };
+
+  // 🔥 PERBAIKAN 1: Buat fallback BORDER_STYLES berdasarkan BORDER_COLORS agar tidak error
+  const BORDER_STYLES = {
+    border_default: `1px solid ${BORDER_COLORS.border_default}`,
+    border_50: `1px solid ${BORDER_COLORS.border_50}`,
+    border_100: `1px solid ${BORDER_COLORS.border_100}`,
+    border_200: `1px solid ${BORDER_COLORS.border_200}`
+  };
+
+  // 🔥 PERBAIKAN 2: Pastikan variabel suaraAktif ada, jika belum dideklarasikan buat objek kosong
+  if (typeof suaraAktif === 'undefined') {
+    window.suaraAktif = {}; 
+  }
 
   // BARU: suntik animasi glow/melayang sekali saja
   if (!document.getElementById('styleBookingAktif')) {
     const style = document.createElement('style');
     style.id = 'styleBookingAktif';
     style.textContent = `
-      /* Elang: angin sepoi-sepoi — border bergoyang halus + warna berayun terang-gelap */
-      @keyframes windBorder {
-        0%   { border-color: #a0d8ef; transform: translateX(0) rotate(0deg); }
-        25%  { border-color: #dff6ff; transform: translateX(1px) rotate(0.3deg); }
-        50%  { border-color: #a0d8ef; transform: translateX(-1px) rotate(-0.3deg); }
-        75%  { border-color: #dff6ff; transform: translateX(1px) rotate(0.2deg); }
-        100% { border-color: #a0d8ef; transform: translateX(0) rotate(0deg); }
-      }
-      .pet-border-elang { animation: windBorder 2.2s ease-in-out infinite; }
+    @keyframes windBorder {
+      0%   { border-color: var(--warna-kostum); transform: translateX(0) rotate(0deg); filter: brightness(1); }
+      25%  { transform: translateX(1px) rotate(0.3deg); filter: brightness(1.3); }
+      50%  { transform: translateX(-1px) rotate(-0.3deg); filter: brightness(1); }
+      75%  { transform: translateX(1px) rotate(0.2deg); filter: brightness(1.3); }
+      100% { border-color: var(--warna-kostum); transform: translateX(0) rotate(0deg); filter: brightness(1); }
+    }
+    .pet-border-elang { animation: windBorder 2.2s ease-in-out infinite; }
 
-      /* Singa: kilatan petir — flash terang tiba-tiba lalu redup */
-      @keyframes lightningBorder {
-        0%, 100% { border-color: #4a4a00; box-shadow: 0 0 4px #ffee0033; }
-        3%       { border-color: #ffff33; box-shadow: 0 0 20px #ffff33; }
-        6%       { border-color: #4a4a00; box-shadow: 0 0 4px #ffee0033; }
-        45%      { border-color: #ffff33; box-shadow: 0 0 18px #ffff33; }
-        48%      { border-color: #4a4a00; box-shadow: 0 0 4px #ffee0033; }
-      }
-      .pet-border-singa { animation: lightningBorder 2.4s linear infinite; }
+    @keyframes lightningBorder {
+      0%, 100% { border-color: var(--warna-kostum); box-shadow: 0 0 4px var(--warna-kostum); }
+      3%       { border-color: #ffffff; box-shadow: 0 0 20px var(--warna-kostum); }
+      6%       { border-color: var(--warna-kostum); box-shadow: 0 0 4px var(--warna-kostum); }
+      45%      { border-color: #ffffff; box-shadow: 0 0 18px var(--warna-kostum); }
+      48%      { border-color: var(--warna-kostum); box-shadow: 0 0 4px var(--warna-kostum); }
+    }
+    .pet-border-singa { animation: lightningBorder 2.4s linear infinite; }
 
-      /* Naga: jilatan api — gradasi warna merah-oranye bergelombang */
-      @keyframes fireBorder {
-        0%   { border-color: #ff4500; box-shadow: 0 0 6px #ff4500; }
-        33%  { border-color: #ff8c00; box-shadow: 0 0 14px #ff8c00; }
-        66%  { border-color: #ffae00; box-shadow: 0 0 10px #ff4500; }
-        100% { border-color: #ff4500; box-shadow: 0 0 6px #ff4500; }
-      }
-      .pet-border-naga { animation: fireBorder 1.1s ease-in-out infinite; }
+    @keyframes fireBorder {
+      0%   { border-color: var(--warna-kostum); box-shadow: 0 0 6px var(--warna-kostum); }
+      33%  { box-shadow: 0 0 14px var(--warna-kostum); }
+      66%  { box-shadow: 0 0 10px var(--warna-kostum); }
+      100% { border-color: var(--warna-kostum); box-shadow: 0 0 6px var(--warna-kostum); }
+    }
+    .pet-border-naga { animation: fireBorder 1.1s ease-in-out infinite; }
 
-      .card-booking-aktif { border-width: 2px; border-style: solid; }
-    `;
+    .card-booking-aktif { border-width: 2px; border-style: solid; }
+  `;
     document.head.appendChild(style);
   }
 
   const now = new Date();
 
-  // 🔹 Mapping nama tampil
   const namaJenis = { HP: "REGULER", PS2: "VIP", PS3: "VVIP", PS4: "ULTRA VIP" };
   const warnaJenis = { HP: "#bdc3c7", PS2: "#3498db", PS3: "#9b59b6", PS4: "#f1c40f" };
 
@@ -6879,7 +6897,7 @@ function showBookingList(data) {
       const endStr = row.endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
       const statusBadge = row.isPlaying ? "🔥 SEDANG MAIN" : "⏳ MENUNGGU";
 
-      // Border kustom user (fallback default kalau belum ada)
+      // Sekarang BORDER_STYLES sudah aman digunakan
       const borderCSS = BORDER_STYLES[row.border] || BORDER_STYLES.border_default;
 
       const bgCard = row.isPlaying
@@ -6888,7 +6906,6 @@ function showBookingList(data) {
 
       const card = document.createElement("div");
 
-      // BARU: class animasi dipilih dari row.pet, cuma aktif kalau sesi sedang berjalan
       const kelasAnimasi = row.isPlaying ? (PET_ANIMASI_CLASS[row.pet] || "") : "";
       card.className = row.isPlaying ? `card-booking-aktif ${kelasAnimasi}`.trim() : "";
 
@@ -6901,8 +6918,9 @@ function showBookingList(data) {
         border-radius: 8px;
         width: 100%;
         box-sizing: border-box;
-        color: ${row.isPlaying ? (BORDER_STYLES[row.border] || "#2ecc71").split(" ").pop() : "inherit"};
       `;
+
+      card.style.setProperty('--warna-kostum', BORDER_COLORS[row.border] || BORDER_COLORS.border_default);
 
       card.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
@@ -6932,7 +6950,12 @@ function showBookingList(data) {
       tbody.appendChild(card);
       const btn = card.querySelector(".btnSuara");
       btn.onclick = function () {
-        toggleSuara(row.nama, this);
+        // 🔥 PERBAIKAN 3: Amankan pemanggilan jika fungsi toggleSuara belum dibuat
+        if (typeof toggleSuara === 'function') {
+          toggleSuara(row.nama, this);
+        } else {
+          console.warn("⚠️ Fungsi toggleSuara() belum didefinisikan.");
+        }
       };
     });
   }
@@ -6940,7 +6963,7 @@ function showBookingList(data) {
   const modal = document.getElementById("bookingModal");
   if (modal) modal.style.display = "flex";
 }
-
+    
 function tampilkanBaris(dataArray) {
   console.log("📦 Data booking:", dataArray);
   const tbody = document.getElementById("bookingList");
