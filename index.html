@@ -4961,16 +4961,22 @@ function cekBooking() {
   if (loader) loader.style.display = "flex"; // Tampilkan loader
 
   gsRun
-    .withSuccessHandler(data => {
-      if (loader) loader.style.display = "none"; // Sembunyikan loader setelah sukses
-      (data);
+    .withSuccessHandler(dataMentah => {
+      if (loader) loader.style.display = "none"; // Sembunyikan loader
+      
+      // 🔥 LANGKAH KRUSIAL: Normalisasi data mentah dari GAS seperti fungsi lama Anda
+      const dataNormalisasi = (dataMentah || []).map(row => ({
+        ...row,
+        jam: row.jam || row["jam mulai"] || row["jam booking"] // Sesuai kolom di Google Sheet Anda
+      }));
+
+      // Kirim data yang sudah rapi ke fungsi penampil animasi
+      showBookingList(dataNormalisasi);
     })
     .withFailureHandler(err => {
-      if (loader) loader.style.display = "none"; // 🔥 PENTING: Sembunyikan loader jika server error!
-      
+      if (loader) loader.style.display = "none"; 
       console.error("❌ Gagal mengambil data booking dari server:", err);
       
-      // Tampilkan pesan error ke user (opsional, ganti ID sesuai elemen hasil Anda jika ada)
       const resultBox = document.getElementById("bookingResult");
       if (resultBox) {
         resultBox.innerText = "❌ Gagal memuat daftar: " + err.message;
@@ -4980,8 +4986,7 @@ function cekBooking() {
     })
     .getAllBooking();
 }
-
-
+    
 function submitBookingForm() {
   if (!user || !user.nama) {
     alert("Silakan login terlebih dahulu sebelum booking.");
