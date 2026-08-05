@@ -1421,10 +1421,10 @@ select.db-input {
         <div class="db-qa-icon" onclick="window.open('https://komunitasbooking.github.io/voucher/','_blank')" style="background:#F5F3FF;"><i class="ti ti-medal" style="color:#7C3AED;font-size:20px;" aria-hidden="true"></i>🎟️</div>
         <span class="db-qa-label">Voucher</span>
       </button>
-      <button class="db-qa-item">
-        <div class="db-qa-icon" onclick="window.open('https://komunitasbooking.github.io/bio/','_blank')" style="background:#FFFBEB;"><i class="ti ti-crown" style="color:#D97706;font-size:20px;" aria-hidden="true"></i>👨</div>
-        <span class="db-qa-label">Biografi</span>
-      </button>
+    <button class="db-qa-item">
+      <div class="db-qa-icon" onclick="bukaInventori()" style="background:#FFFBEB;"><i class="ti ti-package" style="color:#D97706;font-size:20px;" aria-hidden="true"></i></div>
+      <span class="db-qa-label">Inventori</span>
+    </button>
       <button class="db-qa-item" onclick="openLelang()">
         <div class="db-qa-icon" style="background:#F0FDF4;"><i class="ti ti-award" style="color:#059669;font-size:20px;" aria-hidden="true"></i>🛒</div>
         <span class="db-qa-label">Lelang</span>
@@ -1557,6 +1557,15 @@ select.db-input {
 
 <!-- ===== Tambahkan script ini (bisa di mana saja setelah elemen) ===== -->
 <script>
+function bukaInventori() {
+  const sessionId = (SESSION_USER && SESSION_USER.sessionId) || localStorage.getItem("sessionId");
+  if (!sessionId) {
+    alert("Sesi tidak ditemukan, silakan login ulang.");
+    return;
+  }
+  window.open("https://komunitasbooking.github.io/inventori/?sid=" + encodeURIComponent(sessionId), "_blank");
+}
+    
 function dbSelectType(el, val) {
   document.querySelectorAll('.db-type-option').forEach(o => o.classList.remove('active'));
   el.classList.add('active');
