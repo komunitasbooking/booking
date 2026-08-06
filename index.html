@@ -1563,7 +1563,7 @@ function bukaInventori() {
     alert("Sesi tidak ditemukan, silakan login ulang.");
     return;
   }
-  window.open("https://komunitasbooking.github.io/inventory/?sid=" + encodeURIComponent(sessionId), "_blank");
+  window.open("https://komunitasbooking.github.io/inventory/?tkn=" + encodeURIComponent(sessionId), "_blank");
 }
     
 function dbSelectType(el, val) {
