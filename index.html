@@ -6844,26 +6844,25 @@ function showBookingList(data) {
   tbody.innerHTML = "";
 
   // BARU: peta pet -> class animasi
-  const PET_ANIMASI_CLASS = {
-    elang: "pet-border-elang",
-    singa: "pet-border-singa",
-    naga: "pet-border-naga"
-  };
+const PET_ANIMASI_CLASS_SESI = {
+  elang: "pet-border-elang",
+  singa: "pet-border-singa",
+  naga: "pet-border-naga"
+};
 
-  const BORDER_COLORS = {
-    border_default: "#dddddd",
-    daun: "#2ecc71",   // hijau
-    petir: "#9b59b6",  // ungu listrik
-    api: "#ff5722"     // oranye-merah
-  };
+const BORDER_COLORS_SESI = {
+  border_default: "#dddddd",
+  daun: "#2ecc71",
+  petir: "#9b59b6",
+  api: "#ff5722"
+};
 
-  // 🔥 PERBAIKAN 1: Buat fallback BORDER_STYLES berdasarkan BORDER_COLORS agar tidak error
-  const BORDER_STYLES = {
-    border_default: `1px solid ${BORDER_COLORS.border_default}`,
-    border_50: `1px solid ${BORDER_COLORS.border_50}`,
-    border_100: `1px solid ${BORDER_COLORS.border_100}`,
-    border_200: `1px solid ${BORDER_COLORS.border_200}`
-  };
+const BORDER_STYLES_SESI = {
+  border_default: `1px solid ${BORDER_COLORS_SESI.border_default}`,
+  daun:  `1px solid ${BORDER_COLORS_SESI.daun}`,
+  petir: `1px solid ${BORDER_COLORS_SESI.petir}`,
+  api:   `1px solid ${BORDER_COLORS_SESI.api}`
+};
 
   // 🔥 PERBAIKAN 2: Pastikan variabel suaraAktif ada, jika belum dideklarasikan buat objek kosong
   if (typeof suaraAktif === 'undefined') {
@@ -6977,7 +6976,7 @@ function showBookingList(data) {
       const statusBadge = row.isPlaying ? "🔥 SEDANG MAIN" : "⏳ MENUNGGU";
 
       // Sekarang BORDER_STYLES sudah aman digunakan
-      const borderCSS = BORDER_STYLES[row.border] || BORDER_STYLES.border_default;
+      const borderCSS = BORDER_STYLES_SESI[row.border] || BORDER_STYLES_SESI.border_default;
 
       const bgCard = row.isPlaying
         ? `background: rgba(46, 204, 113, 0.12); border: ${borderCSS};`
@@ -6985,7 +6984,7 @@ function showBookingList(data) {
 
       const card = document.createElement("div");
 
-      const kelasAnimasi = row.isPlaying ? (PET_ANIMASI_CLASS[row.pet] || "") : "";
+      const kelasAnimasi = row.isPlaying ? (PET_ANIMASI_CLASS_SESI[row.pet] || "") : "";
       card.className = row.isPlaying ? `card-booking-aktif ${kelasAnimasi}`.trim() : "";
 
       card.style.cssText = `
@@ -6999,7 +6998,7 @@ function showBookingList(data) {
         box-sizing: border-box;
       `;
 
-      card.style.setProperty('--warna-kostum', BORDER_COLORS[row.border] || BORDER_COLORS.border_default);
+      card.style.setProperty('--warna-kostum', BORDER_COLORS_SESI[row.border] || BORDER_COLORS_SESI.border_default);
       const ornamenSudut = row.isPlaying ? buatOrnamenSudut(row.pet) : "";
       
       card.innerHTML = `
