@@ -6465,7 +6465,7 @@ function renderLeaderboard(data){
     div.style.textAlign = "left";
 
     // BARU: pakai getPetIcon + bungkus dengan class pet-float & onclick
-    const petIcon = getPetIcon(row.pet);
+    const petIcon = row.petIcon || "";
 
     div.innerHTML = `
       <div style="display:flex; align-items:center; gap:12px; min-width:0; flex:1; margin-right:12px;">
