@@ -6393,18 +6393,20 @@ function showMedali(callback) {
     .getPeringkatMedali();
 }
 
+// Tambahkan kode ini terlebih dahulu
+const BORDER_COLORS = {
+  border_default: "#ccc",   // Warna abu-abu default
+  daun: "#4caf50",           // Warna hijau daun
+  petir: "#ffeb3b",          // Warna kuning petir
+  api: "#f44336"             // Warna merah api
+};
+
+// Kode Anda sebelumnya (sekarang tidak akan error lagi)
 const BORDER_STYLES = {
   border_default: `1px solid ${BORDER_COLORS.border_default}`,
   daun:  `1px solid ${BORDER_COLORS.daun}`,
   petir: `1px solid ${BORDER_COLORS.petir}`,
   api:   `1px solid ${BORDER_COLORS.api}`
-};
-
-const BORDER_COLORS = {
-  border_default: "#dddddd",
-  daun: "#2ecc71",
-  petir: "#9b59b6",
-  api: "#ff5722"
 };
 
 const BORDER_GLOW = {
