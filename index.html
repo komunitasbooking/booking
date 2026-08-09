@@ -6810,9 +6810,9 @@ function toggleSuara(nama, tombol) {
 }
 
 const PET_ORNAMEN = {
-  pet_50: { icon: "🍃", kelas: "ornamen-elang" },   // Elang -> ranting/daun
-  pet_100: { icon: "⚡", kelas: "ornamen-singa" },  // Singa -> kilat
-  pet_200: { icon: "🔥", kelas: "ornamen-naga" }    // Naga -> api
+  elang: { icon: "🍃", kelas: "ornamen-elang" },
+  singa: { icon: "⚡", kelas: "ornamen-singa" },
+  naga:  { icon: "🔥", kelas: "ornamen-naga" }
 };
 
 function buatOrnamenSudut(petId) {
@@ -6845,16 +6845,16 @@ function showBookingList(data) {
 
   // BARU: peta pet -> class animasi
   const PET_ANIMASI_CLASS = {
-    pet_50: "pet-border-elang",
-    pet_100: "pet-border-singa",
-    pet_200: "pet-border-naga"
+    elang: "pet-border-elang",
+    singa: "pet-border-singa",
+    naga: "pet-border-naga"
   };
 
   const BORDER_COLORS = {
     border_default: "#dddddd",
-    border_50: "#cd7f32",
-    border_100: "#c0c0c0",
-    border_200: "#ffd700"
+    daun: "#2ecc71",   // hijau
+    petir: "#9b59b6",  // ungu listrik
+    api: "#ff5722"     // oranye-merah
   };
 
   // 🔥 PERBAIKAN 1: Buat fallback BORDER_STYLES berdasarkan BORDER_COLORS agar tidak error
