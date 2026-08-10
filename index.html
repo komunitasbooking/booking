@@ -6984,9 +6984,16 @@ function showBookingList(data) {
 
       card.style.setProperty('--warna-kostum', warnaBorder);
       const ornamenSudut = row.isPlaying ? buatOrnamenSudut(row.petGaya, row.petIcon) : "";
+      const borderBadge = row.borderIcon
+      ? `<span style="font-size:14px;" title="Border aktif">${row.borderIcon}</span>`
+      : "";
       
       card.innerHTML = `
        ${ornamenSudut}
+         <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+        <div style="font-weight:bold; color:#fff; font-size:13px; word-break:break-word; max-width:55%; display:flex; align-items:center; gap:6px;">
+          <span>${row.nama}</span>${borderBadge}
+        </div>
         <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
           <div style="font-weight:bold; color:#fff; font-size:13px; word-break:break-word; max-width:55%;">
             ${row.nama}
@@ -6997,6 +7004,7 @@ function showBookingList(data) {
             </button>
             <div style="font-size:10px; font-weight:bold; color:${row.isPlaying ? '#2ecc71' : '#f1c40f'}; background:rgba(0,0,0,0.3); padding:3px 6px; border-radius:4px; letter-spacing:.5px;">
               ${statusBadge}
+              </div>
             </div>
           </div>
         </div>
