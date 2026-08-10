@@ -6843,15 +6843,18 @@ function showBookingList(data) {
   dataBookingTerakhir = data || [];
   const tbody = document.getElementById("bookingList");
   if (!tbody) return console.error("❌ Elemen #bookingList tidak ditemukan di HTML!");
-  
+
   tbody.innerHTML = "";
 
-  // BARU: peta pet -> class animasi
-  const GAYA_ANIMASI_CLASS = { elang: "pet-border-elang", singa: "pet-border-singa", naga: "pet-border-naga" }; // ini boleh tetap, cuma 3 gaya CSS yang memang ada
+  // Cuma 3 gaya animasi CSS yang memang ada — ini boleh tetap hardcode
+  const GAYA_ANIMASI_CLASS = {
+    elang: "pet-border-elang",
+    singa: "pet-border-singa",
+    naga: "pet-border-naga"
+  };
 
-  // 🔥 PERBAIKAN 2: Pastikan variabel suaraAktif ada, jika belum dideklarasikan buat objek kosong
   if (typeof suaraAktif === 'undefined') {
-    window.suaraAktif = {}; 
+    window.suaraAktif = {};
   }
 
   // BARU: suntik animasi glow/melayang sekali saja
@@ -6955,12 +6958,12 @@ function showBookingList(data) {
         Tidak ada booking aktif
       </div>
     `;
-  } else {
+ } else {
     dataAktif.forEach(row => {
       const endStr = row.endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
       const statusBadge = row.isPlaying ? "🔥 SEDANG MAIN" : "⏳ MENUNGGU";
 
-      // Sekarang BORDER_STYLES sudah aman digunakan
+      // 🆕 GANTI SEMUA baris lama yang pakai BORDER_STYLES_SESI / BORDER_COLORS_SESI jadi ini:
       const warnaBorder = row.borderWarna || "#dddddd";
       const borderCSS = `1px solid ${warnaBorder}`;
 
@@ -6971,20 +6974,16 @@ function showBookingList(data) {
       const card = document.createElement("div");
 
       const kelasAnimasi = row.isPlaying ? (GAYA_ANIMASI_CLASS[row.petGaya] || "") : "";
-      card.style.setProperty('--warna-kostum', warnaBorder);
-      const ornamenSudut = row.isPlaying ? buatOrnamenSudut(row.petGaya, row.petIcon) : "";
       card.className = row.isPlaying ? `card-booking-aktif ${kelasAnimasi}`.trim() : "";
 
       card.style.cssText = `
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
+        display: flex; flex-direction: column; gap: 6px;
         ${bgCard}
-        padding: 10px;
-        border-radius: 8px;
-        width: 100%;
-        box-sizing: border-box;
+        padding: 10px; border-radius: 8px; width: 100%; box-sizing: border-box;
       `;
+
+      card.style.setProperty('--warna-kostum', warnaBorder);
+      const ornamenSudut = row.isPlaying ? buatOrnamenSudut(row.petGaya, row.petIcon) : "";
       
       card.innerHTML = `
        ${ornamenSudut}
