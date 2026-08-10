@@ -6987,7 +6987,6 @@ function showBookingList(data) {
       `;
 
       card.style.setProperty('--warna-kostum', BORDER_COLORS_SESI[row.border] || BORDER_COLORS_SESI.border_default);
-      const ornamenSudut = row.isPlaying ? buatOrnamenSudut(row.pet) : "";
       
       card.innerHTML = `
        ${ornamenSudut}
