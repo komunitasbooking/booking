@@ -8844,7 +8844,7 @@ function kirimTebakan() {
         console.error("❌ [DEBUG UI] Gagal submitTebakan:", err);
         alert(err?.message ? `❌ Gagal: ${err.message}` : "❌ Gagal mengirim tebakan. Coba lagi.");
       })
-      .submitTebakan(namaUser, tebakan);
+        .submitTebakan(namaUser, tebakan, localStorage.getItem("sessionId"));
 
   } catch (err) {
     window._kirimTebakanInProgress = false;
