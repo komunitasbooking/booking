@@ -4407,15 +4407,20 @@ function handleLoginSuccess(response) {
   }
 
   // ============================================
-  // 📡 PANGGILAN KE SERVER — DISEBAR BERTAHAP (anti-burst)
+  // 📡 PANGGILAN KE SERVER — DISEBAR BERTAHAP + OFFSET ACAK PER-DEVICE (anti-burst)
   // ============================================
 
-  // --- Simpan session di server (paling kritis, jalan duluan)
-  gsRun
-    .withFailureHandler(err =>
-      console.error("❌ Gagal simpan session server:", err)
-    )
-    .simpanSessionUser(SESSION_USER);
+  // 🎲 Offset unik per device, supaya login bersamaan dari banyak user tidak nabrak di titik waktu yang sama
+  const offsetAcak = Math.floor(Math.random() * 1500); // 0–1500ms
+
+  // --- Simpan session di server (paling kritis, tetap jalan duluan + offset)
+  setTimeout(() => {
+    gsRun
+      .withFailureHandler(err =>
+        console.error("❌ Gagal simpan session server:", err)
+      )
+      .simpanSessionUser(SESSION_USER);
+  }, offsetAcak);
 
   setTimeout(() => {
     gsRun
@@ -4423,7 +4428,7 @@ function handleLoginSuccess(response) {
         console.error("❌ Gagal simpan login aktif:", err)
       )
       .simpanLoginAktif(SESSION_USER.nama);
-  }, 200);
+  }, 200 + offsetAcak);
 
   // --- Ambil sisa waktu booking
   setTimeout(() => {
@@ -4442,19 +4447,19 @@ function handleLoginSuccess(response) {
         console.error("❌ Gagal ambil sisa waktu booking:", err)
       )
       .getTotalDurasiBooking(SESSION_USER.nama);
-  }, 400);
+  }, 400 + offsetAcak);
 
   // --- Cek booking
   setTimeout(() => {
     console.log("🔄 Memulai cekSisaBooking...");
     cekSisaBooking();
-  }, 600);
+  }, 600 + offsetAcak);
 
   // --- Load klaim
   setTimeout(() => {
     console.log("🔄 Memulai loadKlaim...");
     loadKlaim();
-  }, 800);
+  }, 800 + offsetAcak);
 
   // --- Cek permintaan rekomendasi pending untuk user ini
   setTimeout(() => {
@@ -4471,7 +4476,7 @@ function handleLoginSuccess(response) {
         console.error("❌ Gagal cek rekomendasi pending:", err)
       )
       .getPendingRekomendasiUntuk(SESSION_USER.nama);
-  }, 1000);
+  }, 1000 + offsetAcak);
 
   // --- Cek ulang tahun
   setTimeout(() => {
@@ -4510,7 +4515,7 @@ function handleLoginSuccess(response) {
         console.error("❌ Gagal cek ulang tahun:", err)
       )
       .checkBirthday(SESSION_USER.nama);
-  }, 1200);
+  }, 1200 + offsetAcak);
 
   // 🔒 AKTIFKAN MODE TERKUNCI (paling akhir biar semua tombol sudah render)
   if (isBlokir) {
@@ -4533,7 +4538,6 @@ function handleLoginSuccess(response) {
   }
 
 }
-
 
 </script>
 
