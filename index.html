@@ -3807,15 +3807,21 @@ function getDeviceToken() {
 let sessionCheckInterval = null;
 
 function mulaiCekSesiBerkala() {
-  if (sessionCheckInterval) clearInterval(sessionCheckInterval);
+  if (sessionCheckInterval) clearTimeout(sessionCheckInterval);
 
-  sessionCheckInterval = setInterval(cekValiditasSesi, 60 * 1000);
+  function jadwalkanCekBerikutnya() {
+    const jitter = 55000 + Math.floor(Math.random() * 20000); // 55–75 detik
+    sessionCheckInterval = setTimeout(() => {
+      cekValiditasSesi();
+      jadwalkanCekBerikutnya();
+    }, jitter);
+  }
+  jadwalkanCekBerikutnya();
 
-  // 🚩 BARU: cek juga setiap kali tab/browser kembali fokus (setelah minimize)
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
-      cekIdleSetelahKembali(); // cek idle dulu (kasus #1)
-      cekValiditasSesi();      // baru cek single-session
+      cekIdleSetelahKembali();
+      cekValiditasSesi();
     }
   });
 }
