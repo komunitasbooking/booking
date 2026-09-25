@@ -4397,20 +4397,7 @@ function handleLoginSuccess(response) {
     loadGelar(SESSION_USER.nama);
   }
 
-  // --- Simpan session di server
-  gsRun
-    .withFailureHandler(err =>
-      console.error("❌ Gagal simpan session server:", err)
-    )
-    .simpanSessionUser(SESSION_USER);
-
-  gsRun
-    .withFailureHandler(err =>
-      console.error("❌ Gagal simpan login aktif:", err)
-    )
-    .simpanLoginAktif(SESSION_USER.nama);
-
-  // --- Tampilkan dashboard
+  // --- Tampilkan dashboard (tidak perlu nunggu gsRun apapun)
   const dashboardEl = document.getElementById("dashboard");
   const loginDivEl = document.getElementById("loginDiv");
 
@@ -4419,80 +4406,111 @@ function handleLoginSuccess(response) {
     dashboardEl.style.display = "block";
   }
 
-  // --- Ambil sisa waktu booking
+  // ============================================
+  // 📡 PANGGILAN KE SERVER — DISEBAR BERTAHAP (anti-burst)
+  // ============================================
+
+  // --- Simpan session di server (paling kritis, jalan duluan)
   gsRun
-    .withSuccessHandler(sisaWaktu => {
-
-      waktuSisa = sisaWaktu;
-
-      const waktuEl = document.getElementById("waktuBooking");
-      if (waktuEl) waktuEl.textContent = sisaWaktu + " menit";
-
-      console.log("🔹 Sisa waktu booking:", sisaWaktu);
-
-    })
     .withFailureHandler(err =>
-      console.error("❌ Gagal ambil sisa waktu booking:", err)
+      console.error("❌ Gagal simpan session server:", err)
     )
-    .getTotalDurasiBooking(SESSION_USER.nama);
+    .simpanSessionUser(SESSION_USER);
+
+  setTimeout(() => {
+    gsRun
+      .withFailureHandler(err =>
+        console.error("❌ Gagal simpan login aktif:", err)
+      )
+      .simpanLoginAktif(SESSION_USER.nama);
+  }, 200);
+
+  // --- Ambil sisa waktu booking
+  setTimeout(() => {
+    gsRun
+      .withSuccessHandler(sisaWaktu => {
+
+        waktuSisa = sisaWaktu;
+
+        const waktuEl = document.getElementById("waktuBooking");
+        if (waktuEl) waktuEl.textContent = sisaWaktu + " menit";
+
+        console.log("🔹 Sisa waktu booking:", sisaWaktu);
+
+      })
+      .withFailureHandler(err =>
+        console.error("❌ Gagal ambil sisa waktu booking:", err)
+      )
+      .getTotalDurasiBooking(SESSION_USER.nama);
+  }, 400);
 
   // --- Cek booking
-  cekSisaBooking();
+  setTimeout(() => {
+    console.log("🔄 Memulai cekSisaBooking...");
+    cekSisaBooking();
+  }, 600);
 
-  console.log("🔄 Memulai loadKlaim...");
-  loadKlaim();
+  // --- Load klaim
+  setTimeout(() => {
+    console.log("🔄 Memulai loadKlaim...");
+    loadKlaim();
+  }, 800);
 
   // --- Cek permintaan rekomendasi pending untuk user ini
-  gsRun
-    .withSuccessHandler(daftarPending => {
+  setTimeout(() => {
+    gsRun
+      .withSuccessHandler(daftarPending => {
 
-      if (!daftarPending || daftarPending.length === 0) return;
+        if (!daftarPending || daftarPending.length === 0) return;
 
-      console.log("🔔 Ada permintaan rekomendasi:", daftarPending);
-      tampilkanModalRekomendasi(daftarPending);
+        console.log("🔔 Ada permintaan rekomendasi:", daftarPending);
+        tampilkanModalRekomendasi(daftarPending);
 
-    })
-    .withFailureHandler(err =>
-      console.error("❌ Gagal cek rekomendasi pending:", err)
-    )
-    .getPendingRekomendasiUntuk(SESSION_USER.nama);
-    
+      })
+      .withFailureHandler(err =>
+        console.error("❌ Gagal cek rekomendasi pending:", err)
+      )
+      .getPendingRekomendasiUntuk(SESSION_USER.nama);
+  }, 1000);
+
   // --- Cek ulang tahun
-  gsRun
-    .withSuccessHandler(isUltah => {
+  setTimeout(() => {
+    gsRun
+      .withSuccessHandler(isUltah => {
 
-      if (!isUltah) return;
+        if (!isUltah) return;
 
-      gsRun
-        .withSuccessHandler(sudahKlaim => {
+        gsRun
+          .withSuccessHandler(sudahKlaim => {
 
-          if (sudahKlaim) {
-            console.log("🎂 User sudah klaim hadiah ultah.");
-            return;
-          }
+            if (sudahKlaim) {
+              console.log("🎂 User sudah klaim hadiah ultah.");
+              return;
+            }
 
-          const modal = ensureModalUltah();
+            const modal = ensureModalUltah();
 
-          if (modal) {
-            modal.style.display = "flex";
+            if (modal) {
+              modal.style.display = "flex";
 
-            console.log(
-              "🎂 Modal hadiah ultah ditampilkan:",
-              SESSION_USER.nama
-            );
-          }
+              console.log(
+                "🎂 Modal hadiah ultah ditampilkan:",
+                SESSION_USER.nama
+              );
+            }
 
-        })
-        .withFailureHandler(err =>
-          console.error("❌ Gagal cek klaim ultah:", err)
-        )
-        .sudahKlaimUltah(SESSION_USER.nama);
+          })
+          .withFailureHandler(err =>
+            console.error("❌ Gagal cek klaim ultah:", err)
+          )
+          .sudahKlaimUltah(SESSION_USER.nama);
 
-    })
-    .withFailureHandler(err =>
-      console.error("❌ Gagal cek ulang tahun:", err)
-    )
-    .checkBirthday(SESSION_USER.nama);
+      })
+      .withFailureHandler(err =>
+        console.error("❌ Gagal cek ulang tahun:", err)
+      )
+      .checkBirthday(SESSION_USER.nama);
+  }, 1200);
 
   // 🔒 AKTIFKAN MODE TERKUNCI (paling akhir biar semua tombol sudah render)
   if (isBlokir) {
@@ -4501,7 +4519,7 @@ function handleLoginSuccess(response) {
     }, 300);
   }
 
-  // 🔒 Aktifkan single-session check & idle timer
+  // 🔒 Aktifkan single-session check & idle timer (lokal, tidak menyentuh gsRun langsung)
   if (typeof mulaiCekSesiBerkala === "function") {
     mulaiCekSesiBerkala();
   } else {
