@@ -1959,7 +1959,7 @@ function dbSelectType(el, val) {
         Batal
       </button>
 
-      <button id="btnKirimTransfer" onclick="kirimTransfer()" style="
+      <button id="btn" onclick="()" style="
         flex:1.2;
         background:#3b82f6; /* Diselaraskan menggunakan warna aksen biru modern */
         color:white; padding:12px;
@@ -7442,6 +7442,10 @@ function kirimTransfer() {
     return;
   }
 
+  // 🔑 ID unik per transfer; dipertahankan saat gagal/timeout, direset setelah sukses  // ← BARU
+  if (!window._trfReqId) window._trfReqId = "t" + Date.now() + Math.random().toString(36).slice(2, 8);  // ← BARU
+  const reqId = window._trfReqId;  // ← BARU
+
   // 🔹 Ubah tombol ke mode loading
   btnKirim.disabled = true;
   btnKirim.innerText = "⏳ Mengecek...";
@@ -7468,6 +7472,8 @@ function kirimTransfer() {
       btnKirim.innerText = "⏳ Mengirim…";
       gsRun
         .withSuccessHandler(function(res) {
+          if (String(res).startsWith("✅")) window._trfReqId = null;  // ← BARU: transfer berikutnya dapat ID baru
+
           btnKirim.disabled = false;
           btnKirim.innerText = "Kirim";
           btnKirim.style.opacity = "1";
@@ -7492,7 +7498,7 @@ function kirimTransfer() {
           document.getElementById("loader").style.display = "none";
           alert("Terjadi kesalahan: " + err.message);
         })
-        .prosesTransfer(nominal, namaTujuan, ket, user.nama);
+        .prosesTransfer(nominal, namaTujuan, ket, user.nama, reqId);  // ← BARU: argumen ke-5
     })
     .withFailureHandler(function(err) {
       btnKirim.disabled = false;
