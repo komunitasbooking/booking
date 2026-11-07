@@ -1572,7 +1572,7 @@ function bukaKeuangan() {
     alert("Sesi tidak ditemukan, silakan login ulang.");
     return;
   }
-  window.open("https://komunitasbooking.github.io/kas/?sid=" + encodeURIComponent(sessionId), "_blank");
+  window.open("https://komunitasbooking.github.io/kas/?tkn=" + encodeURIComponent(sessionId), "_blank");
 }
     
 function dbSelectType(el, val) {
