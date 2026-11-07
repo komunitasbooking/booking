@@ -1445,7 +1445,7 @@ select.db-input {
       </button>
       <button class="db-qa-item">
         <div class="db-qa-icon" onclick="window.open('https://komunitasbooking.github.io/kas/','_blank')" style="background:#EFF6FF;"><i class="ti ti-plus" style="color:#2563EB;font-size:20px;" aria-hidden="true"></i>⚖</div>
-        <span class="db-qa-label">Arus Kas</span>
+        <span class="db-qa-label">Keuangan</span>
       </button>
     </div>
   </div>
@@ -1564,6 +1564,15 @@ function bukaInventori() {
     return;
   }
   window.open("https://komunitasbooking.github.io/inventory/?tkn=" + encodeURIComponent(sessionId), "_blank");
+}
+
+function bukaKeuangan() {
+  const sessionId = (SESSION_USER && SESSION_USER.sessionId) || localStorage.getItem("sessionId");
+  if (!sessionId) {
+    alert("Sesi tidak ditemukan, silakan login ulang.");
+    return;
+  }
+  window.open("https://komunitasbooking.github.io/kas/?sid=" + encodeURIComponent(sessionId), "_blank");
 }
     
 function dbSelectType(el, val) {
