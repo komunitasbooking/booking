@@ -2133,8 +2133,8 @@ function dbSelectType(el, val) {
       <span onclick="closeModalUpdate()" class="modal-close">&times;</span>
     </div>
 
-    <!-- Konten Modal (Ditambahkan class modal-content agar bisa di-scroll) -->
-    <div class="modal-content" style="padding:20px;">
+    <!-- Konten Modal -->
+    <div style="padding:20px;">
       <label>PIN Baru (kosongkan jika tidak ganti):</label>
       <input type="password" id="updPIN" class="form-input modern-input" style="margin-bottom:12px;" autocomplete="new-password">
 
@@ -2169,11 +2169,11 @@ function dbSelectType(el, val) {
     display: none;
   }
 
-  /* ✅ Modal aktif flex-center */
+  /* ✅ Perbaikan Utama: Membuka akses scroll global pada modal backdrop */
   .modal-active {
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start; /* Mengubah center ke flex-start agar modal mulai dari atas layar jika panjang */
     position: fixed;
     inset: 0;
     width: 100vw;
@@ -2182,22 +2182,24 @@ function dbSelectType(el, val) {
     backdrop-filter: blur(3px);
     z-index: 1000;
     animation: fadeIn 0.3s ease;
-    padding: 10px; /* Tambahan agar modal tidak menempel di ujung layar HP */
+    
+    /* Mengaktifkan scroll di area luar modal */
+    overflow-y: auto; 
+    padding: 20px 10px; /* Jarak aman atas bawah agar modal tidak mentok layar */
     box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
   }
 
   .modal-box {
     background: white;
     width: 90%;
     max-width: 420px;
-    max-height: 90vh; /* Membatasi tinggi modal agar tidak melebihi layar */
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 8px 25px rgba(0,0,0,0.25);
     animation: scaleUp 0.25s ease;
     position: relative;
-    display: flex; /* Menggunakan flexbox untuk memisahkan header & konten */
-    flex-direction: column;
+    margin: auto 0; /* Otomatis ke tengah secara vertikal jika layar muat, jika tidak akan rata atas */
   }
 
   .modal-header {
@@ -2209,14 +2211,6 @@ function dbSelectType(el, val) {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-shrink: 0; /* Mencegah header mengecil saat di-scroll */
-  }
-
-  /* ✅ Konten internal yang bisa di-scroll */
-  .modal-content {
-    overflow-y: auto; /* Memunculkan scrollbar jika konten terlalu panjang */
-    flex-grow: 1;
-    -webkit-overflow-scrolling: touch; /* Membuat scroll lebih halus di iOS */
   }
 
   .modal-close {
