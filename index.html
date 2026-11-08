@@ -7182,18 +7182,28 @@ function openModalUpdate() {
   document.getElementById("loader").style.display = "flex";
 
   gsRun.withSuccessHandler(function(data) {
-    // 🔹 Isi data form modal
-    document.getElementById("updPIN").value = data.pin || "";
+    // 🔹 Isi data form modal (updPIN sengaja dikosongkan)
+    document.getElementById("updPIN").value = "";
+    document.getElementById("updPINKonfirmasi").value = "";
     document.getElementById("updNamaLengkap").value = data.namaLengkap || "";
     document.getElementById("updWA").value = data.wa || "";
     document.getElementById("updAlamat").value = data.alamat || "";
     document.getElementById("updTanggalLahir").value = data.tanggalLahir || "";
     document.getElementById("updHobi").value = data.hobi || "";
 
-    // 🔹 Sembunyikan loader & tampilkan modal
+    // 🔹 Sembunyikan loader
     document.getElementById("loader").style.display = "none";
-    document.getElementById("modalUpdateData").classList.remove("modal-hidden");
-    document.getElementById("modalUpdateData").classList.add("modal-active");
+
+    // 🔹 Pindahkan modal ke body supaya position: fixed tidak terganggu induk
+    const modal = document.getElementById("modalUpdateData");
+    if (modal.parentElement !== document.body) {
+      document.body.appendChild(modal);
+    }
+
+    // 🔹 Tampilkan modal
+    modal.classList.remove("modal-hidden");
+    modal.classList.add("modal-active");
+    modal.scrollTop = 0; // pastikan scroll mulai dari atas
 
   }).getUserData(user.nama);
 }
