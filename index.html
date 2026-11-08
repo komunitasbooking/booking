@@ -2176,8 +2176,7 @@ function dbSelectType(el, val) {
     align-items: flex-start; /* Mengubah center ke flex-start agar modal mulai dari atas layar jika panjang */
     position: fixed;
     inset: 0;
-    width: 100vw;
-    height: 100vh;
+    overscroll-behavior: contain;
     background-color: rgba(0,0,0,0.5);
     backdrop-filter: blur(3px);
     z-index: 1000;
