@@ -1325,7 +1325,14 @@ select.db-input {
 <!-- HEADER BLUE -->
 <div class="db-top-bar">
   <div class="db-top-inner">
-      <p class="db-top-name">Selamat Datang, <span id="namaPemain"></span>!</p>
+    <!-- Ikon Kerajaan Megah yang terhubung ke fungsi bukaPeta() -->
+    <div class="db-top-icon-wrapper" style="margin-bottom: 8px; font-size: 54px; text-align: center;">
+      <a href="javascript:void(0)" onclick="bukaPeta()" style="text-decoration: none; display: inline-block; filter: drop-shadow(0 0 8px rgba(255,215,0,0.6));">
+        🏰
+      </a>
+    </div>
+
+    <p class="db-top-name">Selamat Datang, <span id="namaPemain"></span>!</p>
     <p class="db-top-gelar"><span id="gelarPemainSpecialis">Memuat gelar...</span></p>
     <div class="db-balance-row">
       <span class="db-chip">
@@ -1573,6 +1580,15 @@ function bukaKeuangan() {
     return;
   }
   window.open("https://komunitasbooking.github.io/kas/?tkn=" + encodeURIComponent(sessionId), "_blank");
+}
+
+function bukaPeta() {
+  const sessionId = (SESSION_USER && SESSION_USER.sessionId) || localStorage.getItem("sessionId");
+  if (!sessionId) {
+    alert("Sesi tidak ditemukan, silakan login ulang.");
+    return;
+  }
+  window.open("https://komunitasbooking.github.io/peta/?tkn=" + encodeURIComponent(sessionId), "_blank");
 }
     
 function dbSelectType(el, val) {
