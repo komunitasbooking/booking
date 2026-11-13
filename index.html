@@ -22,7 +22,7 @@
     </style>
     <!-- Html5-Qrcode library -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
     
@@ -7754,11 +7754,11 @@ function closeUltah() {
 }
 </script>
 <!-- Pastikan library HTML5-Qrcode sudah disertakan -->
-<script src="https://unpkg.com/html5-qrcode"></script>
 <script>
 let barcodeInputEl, status, loader;
 let html5QrCodeInstance = null;
 let cameraActive = false;
+let scanTerkunci = false;
 
 document.addEventListener("DOMContentLoaded", () => {
   // --- Elemen DOM ---
@@ -7785,39 +7785,56 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- Fungsi start scanner ---
   function startScanner() {
-    if (!html5QrCodeInstance) html5QrCodeInstance = new Html5Qrcode("qr-reader");
+    if (cameraActive) return;
+    if (!html5QrCodeInstance) {
+      html5QrCodeInstance = new Html5Qrcode("qr-reader", {
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+      });
+    }
+    scanTerkunci = false;
 
     Html5Qrcode.getCameras()
       .then(cameras => {
-        if (cameras && cameras.length) {
-          html5QrCodeInstance.start(
-            { facingMode: "environment" },
-            { fps: 10, qrbox: 250 },
-            decodedText => {
-              barcodeInputEl.value = decodedText;
-              startLoginBarcode();
+        if (!cameras || !cameras.length) return;
+        return html5QrCodeInstance.start(
+          { facingMode: "environment" },
+          {
+            fps: 15,
+            qrbox: (w, h) => {
+              const s = Math.floor(Math.min(w, h) * 0.8);
+              return { width: s, height: s };
+            },
+            videoConstraints: {
+              facingMode: "environment",
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
             }
-          );
+          },
+          onScanSuccess
+        ).then(() => {
           cameraActive = true;
           updateCameraIcon();
-          console.log("✅ Kamera aktif");
-        }
+          // fokus kontinu; diabaikan diam-diam kalau HP tidak mendukung
+          return html5QrCodeInstance
+            .applyVideoConstraints({ advanced: [{ focusMode: "continuous" }] })
+            .catch(() => {});
+        });
       })
       .catch(err => console.error("Tidak bisa akses kamera:", err));
   }
 
-  // --- Fungsi stop scanner ---
   function stopScanner() {
     if (html5QrCodeInstance && cameraActive) {
-      html5QrCodeInstance.stop()
+      return html5QrCodeInstance.stop()
         .then(() => {
           cameraActive = false;
           updateCameraIcon();
-          console.log("❌ Kamera dimatikan");
         })
         .catch(err => console.warn("❌ Gagal stop kamera:", err));
     }
   }
+  window.stopScanner = stopScanner; // supaya bisa dipanggil dari luar
 
   // --- Tombol toggle kamera ---
   toggleCameraBtn.addEventListener("click", () => {
@@ -7883,13 +7900,16 @@ gsRun
       if (!resp || !resp.valid) {
         status.innerText = (resp && resp.message) ? "❌ " + resp.message : "❌ Gagal login.";
         status.style.color = "red";
+        setTimeout(() => { scanTerkunci = false; }, 2000);
         return;
       }
 
       if (!resp.sessionId) resp.sessionId = crypto.randomUUID();
 
       handleLoginSuccess(resp);
+      if (window.stopScanner) window.stopScanner();
       barcodeInputEl.value = "";
+
     })
     .withFailureHandler(err => {
       loader.style.display = "none";
@@ -7901,11 +7921,14 @@ gsRun
 }
 
 // --- Fungsi callback scanner ---
-function onScanSuccess(decodedText, decodedResult) {
+function onScanSuccess(decodedText) {
+  if (scanTerkunci) return;
+  scanTerkunci = true;
   barcodeInputEl.value = decodedText;
   startLoginBarcode();
 }
 </script>
+
 <style>
   /* Tombol nominal */
   .btnNominal {
