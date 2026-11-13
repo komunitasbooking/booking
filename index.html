@@ -402,7 +402,21 @@ html, body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-
+#qr-shaded-region::after {
+  content: "";
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 4%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #22c55e, transparent);
+  box-shadow: 0 0 8px #22c55e;
+  animation: qrScan 1.8s ease-in-out infinite alternate;
+}
+@keyframes qrScan {
+  from { top: 4%; }
+  to   { top: 96%; }
+}
 </style>
 
   <!-- Loader saat proses login -->
@@ -7783,6 +7797,32 @@ document.addEventListener("DOMContentLoaded", () => {
     toggleCameraBtn.style.backgroundColor = cameraActive ? "green" : "red";
   }
 
+function optimalkanKamera() {
+  const caps = html5QrCodeInstance.getRunningTrackCapabilities() || {};
+  const adv = {};
+
+  if (caps.focusMode && caps.focusMode.includes("continuous")) {
+    adv.focusMode = "continuous";
+  }
+  if (caps.zoom) {
+    adv.zoom = Math.min(caps.zoom.max, Math.max(caps.zoom.min, 2)); // 2x, ubah kalau perlu
+  }
+
+  // 🔧 DIAGNOSA SEMENTARA (hapus setelah selesai)
+  if (status) {
+    status.style.color = "#16a34a";
+    status.innerText = "🔍 Mencari QR... [fokus: " +
+      (caps.focusMode ? caps.focusMode.join("/") : "tidak ada") +
+      " | zoom: " + (caps.zoom ? caps.zoom.min + "-" + caps.zoom.max : "tidak ada") + "]";
+  }
+
+  if (Object.keys(adv).length) {
+    return html5QrCodeInstance
+      .applyVideoConstraints({ advanced: [adv] })
+      .catch(err => console.warn("Constraint kamera ditolak:", err));
+  }
+}
+
   // --- Fungsi start scanner ---
   function startScanner() {
     if (cameraActive) return;
@@ -7816,9 +7856,7 @@ document.addEventListener("DOMContentLoaded", () => {
           cameraActive = true;
           updateCameraIcon();
           // fokus kontinu; diabaikan diam-diam kalau HP tidak mendukung
-          return html5QrCodeInstance
-            .applyVideoConstraints({ advanced: [{ focusMode: "continuous" }] })
-            .catch(() => {});
+          return optimalkanKamera();
         });
       })
       .catch(err => console.error("Tidak bisa akses kamera:", err));
@@ -7830,6 +7868,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(() => {
           cameraActive = false;
           updateCameraIcon();
+          if (status && status.innerText.startsWith("🔍")) status.innerText = "";
         })
         .catch(err => console.warn("❌ Gagal stop kamera:", err));
     }
@@ -7917,7 +7956,7 @@ gsRun
       status.style.color = "red";
       console.error(err);
     })
-    .loginWithBarcode(barcode, deviceId);
+    .loginWithBarcode(barcode, deviceId, getDeviceToken());
 }
 
 // --- Fungsi callback scanner ---
