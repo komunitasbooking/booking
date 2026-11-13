@@ -4274,7 +4274,7 @@ function login(barcodeId = null) {
         status.style.color = "red";
 
       })
-      .loginWithBarcode(barcodeId, deviceId, deviceToken);
+      .loginWithBarcode(barcode, deviceId, getDeviceToken());
 
     return;
   }
