@@ -2409,11 +2409,12 @@ function dbSelectType(el, val) {
     font-size: 14px;
     color: #333;
   ">
-    Masukkan Penawaran Anda (10 per ticket):
+    Masukkan Penawaran Anda (10 per ticket, boleh banyak: 5 12 99 atau 1-100):
   </label>
 
   <!-- Input -->
-  <input type="number" id="inputTebakan" style="
+  <input type="text" inputmode="text" autocomplete="off"
+    placeholder="contoh: 5 12 99 atau 1-100" id="inputTebakan" style="
     display: block;
     width: 100%;
     box-sizing: border-box;
@@ -2433,7 +2434,7 @@ function dbSelectType(el, val) {
     width: 100%;
     box-sizing: border-box;
   ">
-    <button id="btnKirim" onclick="kirimTebakan()" class="btn btn-hijau">Kirim</button>
+    <button id="btnKirim" onclick="kirimTebakan(event)" class="btn btn-hijau">Kirim</button>
     <button id="btnAmbil" onclick="ambilBarang()" class="btn btn-kuning">Ambil</button>
     <button onclick="closeLelang()" class="btn btn-abu">Tutup</button>
   </div>
@@ -8872,7 +8873,7 @@ function ambilBarang() {
     .ambilBarang(namaUser);
 }
 
-function kirimTebakan() {
+function kirimTebakan(ev) {
   try {
     // --- Jika sudah ada proses kirim tebakan berjalan, tolak
     if (window._kirimTebakanInProgress) {
@@ -8882,10 +8883,11 @@ function kirimTebakan() {
 
     const namaUserEl = document.getElementById("namaUser");
     const inputTebakanEl = document.getElementById("inputTebakan");
-    const btn = document.getElementById("btnKirimTebakan");
+    const btn = (ev && ev.currentTarget) || document.getElementById("btnKirim");
 
     const namaUser = namaUserEl?.textContent?.trim();
-    const tebakan = inputTebakanEl?.value?.trim();
+    const daftar = parseTebakan(inputTebakanEl?.value || "");
+    const tebakan = daftar.join(", "); // hanya untuk log
 
     console.log("▶ [DEBUG UI] tombol diklik:", { namaUser, tebakan });
 
@@ -8893,16 +8895,22 @@ function kirimTebakan() {
       alert("❌ Nama user tidak valid. Silakan login ulang.");
       return;
     }
-    if (!tebakan) {
-      alert("Masukkan tebakan dulu!");
+    if (!daftar.length) {
+      alert("Masukkan minimal 1 angka!");
       return;
     }
+    if (daftar.length > 500) {
+      alert("Maksimal 500 tebakan sekali kirim.");
+      return;
+    }
+    if (!confirm(`Kirim ${daftar.length} tebakan?`)) return;
 
     // --- Set flag in-progress & tampilkan state loading
     window._kirimTebakanInProgress = true;
     if (btn) {
       btn.disabled = true;
       btn.classList.add("is-loading");
+      btn.textContent = "⏳ Mengirim " + daftar.length + "...";
     }
     if (typeof showLoader === "function") showLoader();
 
@@ -8913,10 +8921,11 @@ function kirimTebakan() {
       if (btn) {
         btn.disabled = false;
         btn.classList.remove("is-loading");
+        btn.textContent = "Kirim";
       }
       if (typeof hideLoader === "function") hideLoader();
       alert("Permintaan memakan waktu terlalu lama. Silakan coba lagi.");
-    }, 30000);
+    }, 60000);
 
     // --- Kirim ke server
     gsRun
@@ -8927,13 +8936,14 @@ function kirimTebakan() {
         if (btn) {
           btn.disabled = false;
           btn.classList.remove("is-loading");
+          btn.textContent = "Kirim";
         }
         if (typeof hideLoader === "function") hideLoader();
 
         console.log("✅ [DEBUG UI] submitTebakan response:", res);
 
         if (!res || !res.sukses) {
-          alert(res?.pesan || "❌ Gagal mencatat tebakan.");
+          alert(res?.error || res?.pesan || "❌ Gagal mencatat tebakan.");
           return;
         }
 
@@ -8971,7 +8981,7 @@ function kirimTebakan() {
         // ✅ FEEDBACK USER
         // =========================
         alert(
-          `✅ Tebakan '${tebakan}' tercatat!\n` +
+          `✅ ${res.jumlah} tebakan tercatat!\n` +
           `⭐ Poin sekarang: ${res.poinBaru}\n` +
           `💰 Saldo sisa: ${res.saldoBaru}\n` +
           `📉 Harga baru: ${res.hargaBaru}`
@@ -8984,13 +8994,14 @@ function kirimTebakan() {
         if (btn) {
           btn.disabled = false;
           btn.classList.remove("is-loading");
+          btn.textContent = "Kirim";
         }
         if (typeof hideLoader === "function") hideLoader();
 
         console.error("❌ [DEBUG UI] Gagal submitTebakan:", err);
         alert(err?.message ? `❌ Gagal: ${err.message}` : "❌ Gagal mengirim tebakan. Coba lagi.");
       })
-        .submitTebakan(namaUser, tebakan, localStorage.getItem("sessionId"));
+        .submitTebakanBatch(namaUser, daftar, localStorage.getItem("sessionId"));
 
   } catch (err) {
     window._kirimTebakanInProgress = false;
@@ -9169,6 +9180,20 @@ window.closeModalPartisipan = function() {
 function formatTanggal(tgl){
   const d = new Date(tgl);
   return d.toLocaleDateString("id-ID");
+}
+
+function parseTebakan(teks) {
+  const hasil = new Set(); // Set otomatis membuang angka kembar
+  String(teks).split(/[\s,;]+/).forEach(p => {
+    const m = p.match(/^(\d+)-(\d+)$/);
+    if (m) {
+      const a = +m[1], b = +m[2];
+      for (let x = Math.min(a, b); x <= Math.max(a, b) && hasil.size < 1000; x++) hasil.add(x);
+    } else if (p !== "" && !isNaN(p)) {
+      hasil.add(Number(p));
+    }
+  });
+  return [...hasil];
 }
 
 </script>
