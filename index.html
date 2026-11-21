@@ -4583,7 +4583,6 @@ function handleLoginSuccess(response) {
 
 </script>
 
-
 <script>
 
 function openKlaimModal(){
@@ -4657,6 +4656,7 @@ function submitKlaim() {
   }
 
   let dots = 0;
+  let sendAnim = null;   
   const loadingAnim = setInterval(()=>{
     if(!btn) return;
     dots = (dots + 1) % 4;
@@ -4665,6 +4665,7 @@ function submitKlaim() {
 
   const timeoutGuard = setTimeout(()=>{
     clearInterval(loadingAnim);
+    clearInterval(sendAnim);
     alert("⚠ Server lama merespon, silakan coba lagi.");
     resetBtn();
   },20000);
@@ -4681,10 +4682,20 @@ function submitKlaim() {
       }
 
       // 🔎 LANGKAH 2: Jika nama ada, baru kirim klaim
-      btn.textContent = "⏳ Mengirim Klaim...";
+      clearInterval(loadingAnim);          // ✅ hentikan animasi "Mengecek Nama"
+      if (btn) btn.textContent = "⏳ Mengirim Klaim...";
+
+      // animasi baru untuk tahap kirim
+      let dots2 = 0;
+      const sendAnim = setInterval(()=>{
+        if(!btn) return;
+        dots2 = (dots2 + 1) % 4;
+        btn.textContent = "⏳ Mengirim Klaim" + ".".repeat(dots2);
+      },400);
+
       gsRun
         .withSuccessHandler(msg => {
-          clearInterval(loadingAnim);
+          clearInterval(sendAnim);
           clearTimeout(timeoutGuard);
           alert(msg);
           closeKlaimModal();
@@ -4692,7 +4703,7 @@ function submitKlaim() {
           if (typeof handleLoadKlaim === "function") handleLoadKlaim();
         })
         .withFailureHandler(err => {
-          clearInterval(loadingAnim);
+          clearInterval(sendAnim);
           clearTimeout(timeoutGuard);
           alert('❌ Gagal mengirim: ' + err.message);
           resetBtn();
