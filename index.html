@@ -3225,7 +3225,7 @@ function dbSelectType(el, val) {
       box-sizing: border-box;">
 
     <div style="text-align:center; margin-top: 16px;">
-    <button id="btnKlaim" onclick="submitKlaim()" style="
+    <button id="btnKlaim" onclick="submitKlaim(event)" style="
       background:#00ffcc; color:#000; border:none;
       padding:10px 20px; margin-right:8px;
       border-radius:8px; cursor:pointer;
@@ -4593,8 +4593,8 @@ function closeKlaimModal(){
 }
 let klaimSedangDiproses = false; // 🔐 flag global
 
-function submitKlaim() {
-  const btn = document.getElementById('btnKlaim');
+function submitKlaim(ev) {
+  const btn = (ev && ev.currentTarget) || document.getElementById('btnKlaim');
 
   // 🚫 Cegah double klik
   if (klaimSedangDiproses) {
@@ -4653,6 +4653,7 @@ function submitKlaim() {
     btn.disabled = true;
     btn.style.opacity = "0.6";
     btn.style.cursor = "not-allowed";
+    btn.textContent = "🔍 Mengecek Nama...";
   }
 
   let dots = 0;
