@@ -644,6 +644,7 @@ html, body {
 
 <div id="penjelasanModal" class="penjelasan-modal" role="dialog" aria-modal="true" aria-labelledby="penjelasanTitle" aria-hidden="true" style="
   position: fixed;
+  display: none;
   top: 0;
   left: 0;
   width: 100vw;
@@ -5639,8 +5640,12 @@ window.addEventListener("click", function (event) {
 
 //buka modal kedua dalam leaderboard
 /* Script pembuka/penutup modal (mendukung 2 tombol tutup jika ada) */
+// Buka modal kedua dalam leaderboard
+/* Script pembuka/penutup modal (mendukung 2 tombol tutup jika ada) */
 (function () {
   const modal = document.getElementById('penjelasanModal');
+  if (!modal) return; // Mencegah error jika elemen modal tidak ditemukan
+
   const openBtn = document.getElementById('lihatPenjelasanBtn'); // tombol di modal leaderboard
   const closeBtns = [
     document.getElementById('tutupPenjelasanBtn'),
@@ -5648,7 +5653,7 @@ window.addEventListener("click", function (event) {
   ].filter(Boolean);
 
   function openModal() {
-    modal.style.display = 'block';
+    modal.style.display = 'flex'; // DIUBAH: dari 'block' menjadi 'flex' agar tetap center
     modal.setAttribute('aria-hidden', 'false');
     // fokus ke dialog untuk aksesibilitas
     const dialog = modal.querySelector('.penjelasan-dialog');
@@ -5656,6 +5661,7 @@ window.addEventListener("click", function (event) {
     // mencegah scroll body
     document.body.style.overflow = 'hidden';
   }
+
   function closeModal() {
     modal.style.display = 'none';
     modal.setAttribute('aria-hidden', 'true');
@@ -5672,7 +5678,8 @@ window.addEventListener("click", function (event) {
 
   // Escape untuk menutup
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && modal.style.display === 'block') closeModal();
+    // DIUBAH: mengecek 'flex' (atau kondisi tidak 'none') bukan 'block'
+    if (e.key === 'Escape' && modal.style.display === 'flex') closeModal();
   });
 })();
 
