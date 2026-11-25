@@ -642,7 +642,20 @@ html, body {
   </div>
 </div>
 
-<div id="penjelasanModal" class="penjelasan-modal" role="dialog" aria-modal="true" aria-labelledby="penjelasanTitle" aria-hidden="true" style="box-sizing: border-box; padding: 10px;">
+<div id="penjelasanModal" class="penjelasan-modal" role="dialog" aria-modal="true" aria-labelledby="penjelasanTitle" aria-hidden="true" style="
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  box-sizing: border-box;
+  padding: 10px;">
+
   <!-- PEMBUNGKUS UTAMA: Dibuat responsif dan estetik ala gamer style -->
   <div class="penjelasan-dialog" role="document" tabindex="-1" aria-describedby="penjelasanDesc" style="
     background:#1e1e2f; 
