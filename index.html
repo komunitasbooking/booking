@@ -9223,6 +9223,89 @@ function parseTebakan(teks) {
   return [...hasil];
 }
 
+function hariIniWIB() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }); // yyyy-mm-dd
+}
+function kunciPengumuman(id, nama) { return 'pengumuman_' + id + '_' + String(nama).toLowerCase(); }
+
+function perluTampil(p, nama) {
+  const kunci = kunciPengumuman(p.id, nama);
+  try {
+    if (p.frekuensi === 'setiapsesi') return !sessionStorage.getItem(kunci);
+    const terakhir = localStorage.getItem(kunci);
+    if (p.frekuensi === 'harian') return terakhir !== hariIniWIB();
+    return !terakhir; // 'sekali'
+  } catch (e) { return true; }
+}
+
+function tandaiDilihat(p, nama) {
+  const kunci = kunciPengumuman(p.id, nama);
+  try {
+    if (p.frekuensi === 'setiapsesi') sessionStorage.setItem(kunci, '1');
+    else localStorage.setItem(kunci, p.frekuensi === 'harian' ? hariIniWIB() : '1');
+  } catch (e) {}
+}
+
+function cekPengumuman() {
+  const nama = getNamaLogin();
+  if (!nama) return;
+  gsRun
+    .withSuccessHandler(function (daftar) {
+      if (!Array.isArray(daftar)) return;
+      const antrean = daftar.filter(function (p) { return perluTampil(p, nama); }).slice(0, 2); // maks 2 per buka
+      tampilkanAntrean(antrean, nama);
+    })
+    .withFailureHandler(function (err) { console.warn('Pengumuman gagal dimuat', err); })
+    .getPengumumanAktif();
+}
+
+function tampilkanAntrean(antrean, nama) {
+  if (!antrean.length) return;
+  const p = antrean.shift();
+
+  const lama = document.getElementById('pengumumanModal');
+  if (lama) lama.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'pengumumanModal';
+  modal.style.cssText = 'display:flex; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100001; align-items:center; justify-content:center; padding:16px; box-sizing:border-box;';
+
+  const kotak = document.createElement('div');
+  kotak.style.cssText = 'background:#1e1e2f; color:#f0f0f0; border-radius:14px; padding:18px; max-width:360px; width:100%; max-height:80vh; overflow:auto; box-shadow:0 8px 30px rgba(0,0,0,0.5);';
+
+  const judul = document.createElement('h3');
+  judul.style.cssText = 'margin:0 0 10px 0; font-size:16px; color:#00ffcc;';
+  judul.textContent = p.judul;
+
+  const isi = document.createElement('div');
+  isi.style.cssText = 'font-size:13px; line-height:1.5; white-space:pre-line; word-break:break-word; margin-bottom:14px;';
+  isi.textContent = p.isi;
+
+  kotak.appendChild(judul);
+  kotak.appendChild(isi);
+
+  if (p.tombolLink && /^https?:\/\//i.test(p.tombolLink)) {
+    const a = document.createElement('a');
+    a.href = p.tombolLink; a.target = '_blank'; a.rel = 'noopener';
+    a.textContent = p.tombolTeks || 'Buka';
+    a.style.cssText = 'display:block; text-align:center; background:#00ffcc; color:#111; font-weight:bold; text-decoration:none; padding:10px; border-radius:10px; margin-bottom:8px; font-size:13px;';
+    kotak.appendChild(a);
+  }
+
+  const tutup = document.createElement('button');
+  tutup.textContent = 'Mengerti';
+  tutup.style.cssText = 'width:100%; background:#333; color:#fff; border:none; padding:10px; border-radius:10px; font-size:13px; cursor:pointer;';
+  tutup.addEventListener('click', function () {
+    tandaiDilihat(p, nama);
+    modal.remove();
+    tampilkanAntrean(antrean, nama);
+  });
+
+  kotak.appendChild(tutup);
+  modal.appendChild(kotak);
+  document.body.appendChild(modal);
+}
+    
 </script>
 
 <script>
