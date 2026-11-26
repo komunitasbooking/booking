@@ -6569,8 +6569,13 @@ function renderLeaderboard(data){
 
     div.style.background = "#fafafa";
     div.style.borderRadius = "10px";
-    div.style.border = BORDER_STYLES[row.border] || BORDER_STYLES.border_default;
-    div.style.boxShadow = BORDER_GLOW[row.border] || BORDER_GLOW.border_default;
+    if (row.borderWarna) {
+      div.style.border = `1px solid ${row.borderWarna}`;
+      div.style.boxShadow = `0 2px 8px ${row.borderWarna}66`;
+    } else {
+      div.style.border = BORDER_STYLES[row.border] || BORDER_STYLES.border_default;
+      div.style.boxShadow = BORDER_GLOW[row.border] || BORDER_GLOW.border_default;
+    }
     div.style.boxSizing = "border-box";
     div.style.display = "flex";
     div.style.alignItems = "center";
