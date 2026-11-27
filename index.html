@@ -1648,6 +1648,15 @@ function bukaKasbon() {
   }
   window.open("https://komunitasbooking.github.io/kasbon/?tkn=" + encodeURIComponent(sessionId), "_blank");
 }
+
+function bukaMining() {
+  const sessionId = (SESSION_USER && SESSION_USER.sessionId) || localStorage.getItem("sessionId");
+  if (!sessionId) {
+    alert("Sesi tidak ditemukan, silakan login ulang.");
+    return;
+  }
+  window.open("https://komunitasbooking.github.io/mining/?tkn=" + encodeURIComponent(sessionId), "_blank");
+}
     
 function dbSelectType(el, val) {
   document.querySelectorAll('.db-type-option').forEach(o => o.classList.remove('active'));
@@ -3131,26 +3140,26 @@ function dbSelectType(el, val) {
       </a>
 
       <!-- Tombol Mining -->
-      <a href="https://komunitasbooking.github.io/mining/" target="_blank" style="
-        flex: 1;
-        display:inline-flex;
-        justify-content:center;
-        align-items:center;
-        background:#2ecc71;
-        color:white;
-        font-weight:bold;
-        text-decoration:none;
-        padding:10px 2px;
-        border-radius:8px;
-        box-shadow:0 4px 10px rgba(0,0,0,0.2);
-        font-size: clamp(11px, 3vw, 14px);
-        white-space: nowrap;
-        transition: all 0.2s ease;
-      " 
-      onmouseover="this.style.background='#27ae60'" 
-      onmouseout="this.style.background='#2ecc71'">
-        ⚒️ Mining
-      </a>
+        <a href="#" onclick="bukaMining(); return false;" style="
+          flex: 1;
+          display:inline-flex;
+          justify-content:center;
+          align-items:center;
+          background:#2ecc71;
+          color:white;
+          font-weight:bold;
+          text-decoration:none;
+          padding:10px 2px;
+          border-radius:8px;
+          box-shadow:0 4px 10px rgba(0,0,0,0.2);
+          font-size: clamp(11px, 3vw, 14px);
+          white-space: nowrap;
+          transition: all 0.2s ease;
+        "
+        onmouseover="this.style.background='#27ae60'"
+        onmouseout="this.style.background='#2ecc71'">
+          ⚒️ Mining
+        </a>
     </div>
 
     <!-- Kontainer scrollable -->
